@@ -1,0 +1,50 @@
+/*
+ * Gradient Token System
+ * Route: /gradients (internal utility — not linked in nav)
+ *
+ * Single linear gradient: mauve-pink (top-left) → dark violet-blue (bottom-right)
+ */
+
+:root {
+  --gradient-mesh-primary:
+    linear-gradient(135deg, #DBA2D3 21%, #C3A0EB 36%, #B49EFA 45%, #9479F1 58%, #7454E8 69%, #4E29DD 83%, #130360 97%);
+}
+
+/* ── Utility classes ──────────────────────────────────────── */
+
+/* Background — full opacity; control transparency at call site */
+.bg-mesh-gradient {
+  background: var(--gradient-mesh-primary);
+}
+
+/* Gradient text fill */
+.text-mesh-gradient {
+  background: var(--gradient-mesh-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Gradient border — works with border-radius */
+.border-mesh-gradient {
+  background:
+    linear-gradient(var(--border-bg, white), var(--border-bg, white)) padding-box,
+    var(--gradient-mesh-primary) border-box;
+  border: var(--border-width, 2px) solid transparent;
+}
+
+/* Icon fill via CSS mask */
+.icon-mesh-gradient {
+  background: var(--gradient-mesh-primary);
+  background-size: cover;
+  -webkit-mask-image: var(--icon-url);
+  mask-image: var(--icon-url);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  display: inline-block;
+}

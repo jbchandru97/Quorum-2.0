@@ -1,0 +1,655 @@
+/* ═══════════════════════════════════════════════════════════════
+   Quorum primitives
+
+   Rebuilt from the interaction patterns in the Design Companion
+   reference. Written as plain CSS against the tokens in globals.css
+   rather than utility classes, because the whole character of the
+   reference lives in hairlines, mono type at 10–12px, and outline
+   offsets — values that want to be named and shared, not repeated.
+
+   Every rule here is presentation. No primitive in this folder knows
+   about threads, messages, presence, or an agent's answer.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ───────────────────────────────────────────────────────────────
+   0 · Entry
+   The one way things arrive: up 4px, fading in, on the shared ease.
+
+   Run as a keyframe rather than a class the component toggles. A
+   CSS animation fires once, on mount, and never again when the node
+   re-renders — which is exactly the semantics wanted, and gets it
+   without a render pass whose only job is to remove a class.
+   ─────────────────────────────────────────────────────────────── */
+
+@keyframes q-enter-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes q-enter-toolbar {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ───────────────────────────────────────────────────────────────
+   1 · Overlay root
+   A fixed, click-through layer over the host product. Children opt
+   back into pointer events, so the product underneath stays usable.
+   ─────────────────────────────────────────────────────────────── */
+
+.q-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  font-family: var(--q-body);
+  color: var(--q-ink);
+  z-index: var(--q-z-highlight);
+}
+
+.q-overlay > * { pointer-events: auto; }
+
+/* The layer that must never take a click: rings, marquees, labels. */
+.q-overlay-passive,
+.q-overlay .q-overlay-passive,
+.q-overlay .q-overlay-passive > * { pointer-events: none; }
+
+/* ───────────────────────────────────────────────────────────────
+   2 · Floating toolbar
+   The persistent bottom bar. Solid paper on a hairline, so canvas
+   content passes cleanly underneath it. Groups are separated by a
+   rule, never by a gap.
+   ─────────────────────────────────────────────────────────────── */
+
+.q-toolbar-wrap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 22px;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  pointer-events: none;
+  z-index: var(--q-z-toolbar);
+}
+
+/* The reference keeps page chrome flat, and reserves a soft shadow
+   for surfaces that float over content. The bar qualifies twice
+   over: it sits above an arbitrary host app, and on a white one a
+   hairline alone leaves it with almost no edge. */
+.q-toolbar {
+  display: inline-flex;
+  align-items: stretch;
+  background: var(--q-paper);
+  border: 1px solid var(--q-line);
+  box-shadow: 0 6px 24px rgba(22, 23, 26, 0.08);
+  pointer-events: auto;
+  max-width: 100%;
+  animation: q-enter-toolbar var(--q-t) var(--q-ease) both;
+}
+
+:root[data-theme="dark"] .q-toolbar { box-shadow: 0 6px 24px rgba(0, 0, 0, 0.34); }
+
+.q-toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 8px;
+}
+
+.q-toolbar-group + .q-toolbar-group { border-left: 1px solid var(--q-rule); }
+
+.q-tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 10px;
+  font: 500 11.5px/1 var(--q-body);
+  color: var(--q-muted);
+  white-space: nowrap;
+  transition: color var(--q-t-fast) var(--q-ease), background-color var(--q-t-fast) var(--q-ease);
+}
+
+.q-tb-btn svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: 0 0 auto;
+}
+
+.q-tb-btn:hover:not(:disabled) { color: var(--q-ink); background: var(--q-fill); }
+.q-tb-btn:disabled { opacity: .4; cursor: default; }
+
+/* Selected mode: the accent, because a mode is the tool you are
+   holding — the one place a toolbar earns colour. */
+.q-tb-btn.is-on { color: var(--q-signal); background: var(--q-signal-wash); }
+.q-tb-btn.is-on:hover { color: var(--q-signal); background: var(--q-signal-wash); }
+
+/* A count reads as an interface artifact, so it is set in mono. */
+.q-tb-count {
+  font: 400 11px/1 var(--q-mono);
+  color: var(--q-muted);
+  padding: 1px 0 0 2px;
+}
+.q-tb-btn.is-on .q-tb-count,
+.q-tb-btn:hover .q-tb-count { color: inherit; }
+
+.q-tb-divider { width: 1px; align-self: stretch; background: var(--q-rule); margin: 5px 0; }
+
+/* ───────────────────────────────────────────────────────────────
+   3 · Inspect highlight
+   One ring element that travels to whatever is under the cursor.
+   Moving a single node — rather than drawing a new one — is what
+   makes hover inspection feel like an instrument: the ring glides
+   between targets instead of blinking between them.
+   ─────────────────────────────────────────────────────────────── */
+
+.q-inspect {
+  position: fixed;
+  border: 1.5px solid var(--q-signal);
+  background: var(--q-signal-edge);
+  opacity: 0;
+  pointer-events: none;
+  z-index: var(--q-z-highlight);
+  transition:
+    left   var(--q-snap) var(--q-ease),
+    top    var(--q-snap) var(--q-ease),
+    width  var(--q-snap) var(--q-ease),
+    height var(--q-snap) var(--q-ease),
+    opacity 150ms var(--q-ease);
+}
+
+.q-inspect.is-on { opacity: 1; }
+
+/* Dashed reads as provisional — a candidate, or a region still being
+   drawn — against the solid ring of a committed target. */
+.q-inspect.is-tentative { border-style: dashed; background: transparent; }
+
+.q-inspect-label {
+  position: absolute;
+  left: -1.5px;
+  bottom: 100%;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  font: 400 10.5px/1 var(--q-mono);
+  background: var(--q-signal);
+  color: #FFFFFF;
+  padding: 3px 6px;
+}
+
+/* When the target is near the top of the viewport the label flips
+   below it, so it never leaves the screen. */
+.q-inspect.label-below .q-inspect-label {
+  bottom: auto;
+  top: 100%;
+  margin-bottom: 0;
+  margin-top: 4px;
+}
+
+/* A committed selection keeps corner handles, the way a design tool
+   marks the thing you have actually picked. */
+.q-inspect.is-selected::before,
+.q-inspect.is-selected::after,
+.q-inspect.is-selected .q-inspect-c::before,
+.q-inspect.is-selected .q-inspect-c::after {
+  content: '';
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: var(--q-paper);
+  border: 1px solid var(--q-signal);
+}
+.q-inspect.is-selected::before { left: -3px; top: -3px; }
+.q-inspect.is-selected::after  { right: -3px; top: -3px; }
+.q-inspect.is-selected .q-inspect-c::before { left: -3px; bottom: -3px; }
+.q-inspect.is-selected .q-inspect-c::after  { right: -3px; bottom: -3px; }
+
+/* The slow ambient breathe, reserved for the region currently in
+   scope. It is the only thing in Quorum that pulses. */
+.q-inspect.is-scope::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--q-signal);
+  opacity: .05;
+  animation: q-breathe 2.6s var(--q-ease) infinite;
+  pointer-events: none;
+}
+
+@keyframes q-breathe {
+  0%, 100% { opacity: .04; }
+  50%      { opacity: .12; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q-inspect.is-scope::after { opacity: .08; animation: none; }
+}
+
+/* ───────────────────────────────────────────────────────────────
+   4 · Side panel
+   Docks to an edge and waits there. The rail stays visible when the
+   panel is closed, so the surface is discoverable without occupying
+   the screen — the reference's code hand-off column, generalised.
+   ─────────────────────────────────────────────────────────────── */
+
+.q-panel {
+  position: fixed;
+  top: 56px;
+  bottom: 12px;
+  width: 380px;
+  max-width: calc(100vw - 24px);
+  display: flex;
+  z-index: var(--q-z-panel);
+  transition: transform var(--q-t-travel) var(--q-ease-out);
+}
+
+.q-panel[data-side="right"] { right: 0; transform: translateX(calc(100% - 32px)); }
+.q-panel[data-side="left"]  { left: 0;  transform: translateX(calc(-100% + 32px)); flex-direction: row-reverse; }
+
+.q-panel.is-open { transform: translateX(0); }
+
+/* With no rail there is nothing to peek, so it parks fully off-screen. */
+.q-panel.no-rail[data-side="right"] { transform: translateX(100%); }
+.q-panel.no-rail[data-side="left"]  { transform: translateX(-100%); }
+.q-panel.no-rail.is-open { transform: translateX(0); }
+
+.q-panel-rail {
+  flex: 0 0 32px;
+  background: var(--q-paper);
+  border: 1px solid var(--q-rule);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background-color var(--q-t-fast) var(--q-ease);
+}
+.q-panel[data-side="right"] .q-panel-rail { border-right: 0; }
+.q-panel[data-side="left"]  .q-panel-rail { border-left: 0; }
+.q-panel-rail:hover { background: var(--q-fill); }
+
+.q-panel-rail-t {
+  font: 400 10px/1 var(--q-mono);
+  color: var(--q-muted);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.q-panel-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--q-paper);
+  border: 1px solid var(--q-rule);
+}
+.q-panel[data-side="right"] .q-panel-body { border-right: 0; }
+.q-panel[data-side="left"]  .q-panel-body { border-left: 0; }
+
+.q-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 10px 11px 14px;
+  border-bottom: 1px solid var(--q-rule);
+  flex: 0 0 auto;
+}
+
+.q-panel-title {
+  flex: 1;
+  min-width: 0;
+  font: 500 12.5px/1.3 var(--q-body);
+  color: var(--q-ink);
+}
+
+.q-panel-sub {
+  display: block;
+  font: 400 10.5px/1.5 var(--q-mono);
+  color: var(--q-muted);
+  font-weight: 400;
+}
+
+.q-panel-x {
+  font: 400 15px/1 var(--q-body);
+  color: var(--q-muted);
+  padding: 3px 6px;
+  flex: 0 0 auto;
+}
+.q-panel-x:hover { color: var(--q-ink); }
+
+.q-panel-content { flex: 1; min-height: 0; overflow: auto; padding: 14px; }
+
+.q-panel-foot {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--q-rule);
+}
+
+/* ───────────────────────────────────────────────────────────────
+   5 · Popover & tooltip
+   Both are paper on a hairline; the difference is what they carry.
+   A popover holds rows you can act on; a tooltip holds one line of
+   mono and never takes a pointer.
+   ─────────────────────────────────────────────────────────────── */
+
+.q-popover {
+  position: fixed;
+  min-width: 200px;
+  background: var(--q-paper);
+  border: 1px solid var(--q-line);
+  box-shadow: 0 6px 24px rgba(22, 23, 26, 0.08);
+  z-index: var(--q-z-popover);
+  opacity: 0;
+  transform: translateY(4px);
+  transform-origin: 50% 100%;
+  pointer-events: none;
+  transition: opacity var(--q-t) var(--q-ease), transform var(--q-t-panel) var(--q-ease);
+}
+
+.q-popover.is-on { opacity: 1; transform: none; pointer-events: auto; }
+
+:root[data-theme="dark"] .q-popover { box-shadow: 0 6px 24px rgba(0, 0, 0, 0.34); }
+
+.q-popover-head {
+  padding: 8px 11px 7px;
+  border-bottom: 1px solid var(--q-rule);
+  font: 400 9.5px/1 var(--q-mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--q-muted);
+}
+
+.q-popover-body { padding: 4px 0; }
+
+.q-popover-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 11px;
+  font: 400 12.5px/1.35 var(--q-body);
+  color: var(--q-ink);
+  transition: background-color var(--q-t-fast) var(--q-ease);
+}
+
+.q-popover-row:hover { background: var(--q-fill); }
+.q-popover-row .q-popover-k { font: 400 10.5px/1 var(--q-mono); color: var(--q-muted); flex: 0 0 auto; }
+.q-popover-row.is-on { color: var(--q-signal); }
+
+/* A sentence, so it takes the body face. Mono is for the heading
+   above it, which is a label. */
+.q-popover-empty {
+  padding: 12px 11px 13px;
+  font: 400 12.5px/1.5 var(--q-body);
+  color: var(--q-muted);
+  max-width: 34ch;
+}
+
+.q-tooltip {
+  position: fixed;
+  background: var(--q-ink);
+  color: var(--q-paper);
+  font: 400 10.5px/1.4 var(--q-mono);
+  padding: 4px 7px;
+  white-space: nowrap;
+  z-index: var(--q-z-popover);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(3px);
+  transition: opacity var(--q-t-fast) var(--q-ease), transform var(--q-t-fast) var(--q-ease);
+}
+
+.q-tooltip.is-on { opacity: 1; transform: none; }
+
+/* ───────────────────────────────────────────────────────────────
+   6 · Avatar stack
+   Overlapping circles, most-recent first. Initials over generated
+   fills, so the stack works before any image loads.
+   ─────────────────────────────────────────────────────────────── */
+
+.q-avatars { display: inline-flex; align-items: center; }
+
+.q-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--q-fill);
+  color: var(--q-ink);
+  font-family: var(--q-mono);
+  font-weight: 500;
+  line-height: 1;
+  flex: 0 0 auto;
+  box-shadow: 0 0 0 1.5px var(--q-paper);
+  overflow: visible;
+  user-select: none;
+}
+
+.q-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+
+.q-avatars .q-avatar + .q-avatar { margin-left: -7px; }
+
+/* Presence: a live dot on the ring, not a colour change on the face. */
+.q-avatar-live {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--q-ok);
+  box-shadow: 0 0 0 1.5px var(--q-paper);
+}
+
+.q-avatar-more {
+  margin-left: -7px;
+  font: 400 10px/1 var(--q-mono);
+  color: var(--q-muted);
+  background: var(--q-paper);
+  border: 1px solid var(--q-rule);
+  box-shadow: none;
+}
+
+/* ───────────────────────────────────────────────────────────────
+   7 · Shimmer
+   A light sweeping through the words themselves — the reference's
+   loading treatment, and better than a spinner because the text you
+   are waiting on is the thing that animates.
+   ─────────────────────────────────────────────────────────────── */
+
+.q-shimmer {
+  --q-sb: var(--q-muted);
+  --q-sh: var(--q-ink);
+  --q-spread: 60px;
+  display: inline-block;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  background-image:
+    linear-gradient(90deg, transparent calc(50% - var(--q-spread)), var(--q-sh), transparent calc(50% + var(--q-spread))),
+    linear-gradient(var(--q-sb), var(--q-sb));
+  background-size: 250% 100%, auto;
+  background-repeat: no-repeat, repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: q-shimmer 2s linear infinite;
+}
+
+@keyframes q-shimmer {
+  from { background-position: 100% 0, 0 0; }
+  to   { background-position: 0% 0, 0 0; }
+}
+
+/* The block form, for a shape whose content has not arrived at all. */
+.q-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--q-fill);
+}
+
+.q-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, var(--q-signal-edge) 50%, transparent 80%);
+  background-size: 220% 100%;
+  animation: q-sheen 2.2s linear infinite;
+}
+
+@keyframes q-sheen {
+  from { background-position: 140% 0; }
+  to   { background-position: -140% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q-shimmer {
+    animation: none;
+    color: var(--q-ink);
+    -webkit-text-fill-color: var(--q-ink);
+    background: none;
+  }
+  .q-skeleton::after { animation: none; background: var(--q-signal-edge); }
+}
+
+/* ───────────────────────────────────────────────────────────────
+   8 · Agent steps
+   Multi-step progress instead of a spinner. Rows arrive staggered,
+   the running one shimmers, finished ones go quiet and keep a tick.
+   The group collapses to a count once it is done, so a long answer
+   does not stay buried under its own scaffolding.
+   ─────────────────────────────────────────────────────────────── */
+
+.q-steps { display: flex; flex-direction: column; }
+
+.q-steps-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 2px 0;
+  font: 400 13px/1.5 var(--q-body);
+  color: var(--q-ink);
+}
+
+.q-steps.is-done .q-steps-main { color: var(--q-muted); }
+
+.q-steps-chev {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: var(--q-muted);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: rotate(90deg);
+  transition: transform var(--q-t) var(--q-ease);
+}
+.q-steps.is-closed .q-steps-chev { transform: rotate(0deg); }
+
+.q-steps-count { margin-left: auto; font: 400 11px/1 var(--q-mono); color: var(--q-muted); flex: 0 0 auto; }
+
+.q-steps-list { display: flex; flex-direction: column; gap: 5px; padding: 6px 0 2px 19px; }
+.q-steps.is-closed .q-steps-list { display: none; }
+
+.q-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 400 13px/1.5 var(--q-body);
+  color: var(--q-ink);
+  animation: q-enter-up var(--q-t) var(--q-ease) both;
+}
+
+.q-step.is-done { color: var(--q-muted); }
+
+.q-step-mark { width: 14px; height: 14px; display: grid; place-items: center; flex: 0 0 auto; }
+
+/* The `:empty` guard lets a step supply its own leading glyph — a
+   connector logo, a source mark — without the default dot doubling
+   up underneath it. */
+.q-step.is-running .q-step-mark:empty::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--q-signal);
+  animation: q-pulse 1.1s var(--q-ease) infinite;
+}
+
+.q-step.is-pending .q-step-mark:empty::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--q-muted);
+}
+
+.q-step-mark svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: var(--q-muted);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.q-step.is-failed .q-step-mark:empty::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--q-muted);
+}
+.q-step.is-failed { color: var(--q-muted); text-decoration: line-through; text-decoration-color: var(--q-rule); }
+
+@keyframes q-pulse {
+  0%, 100% { opacity: .35; transform: scale(.8); }
+  50%      { opacity: 1;   transform: scale(1.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q-step.is-running .q-step-mark::before { animation: none; opacity: 1; }
+}
+
+/* ───────────────────────────────────────────────────────────────
+   9 · Source chip
+   Provenance, carried by shape as well as colour so it survives
+   without colour. Filled square = fetched, hollow square = cited,
+   filled circle = inferred. Every answer carries exactly one.
+   ─────────────────────────────────────────────────────────────── */
+
+.q-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.q-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: 400 11px/1 var(--q-mono);
+  color: var(--q-ink);
+  background: var(--q-paper);
+  border: 1px solid var(--q-rule);
+  padding: 5px 9px 5px 8px;
+  white-space: nowrap;
+  max-width: 100%;
+  transition: border-color var(--q-t-fast) var(--q-ease);
+  animation: q-enter-up var(--q-t) var(--q-ease) both;
+}
+a.q-chip:hover, button.q-chip:hover { border-color: var(--q-ink); }
+
+.q-chip-label { overflow: hidden; text-overflow: ellipsis; }
+.q-chip-detail { color: var(--q-muted); flex: 0 0 auto; }
+
+.q-prov { width: 8px; height: 8px; flex: 0 0 auto; display: inline-block; }
+.q-prov[data-kind="fetched"]  { background: var(--q-evidence); }
+.q-prov[data-kind="cited"]    { border: 1.5px solid var(--q-evidence); }
+.q-prov[data-kind="inferred"] { background: var(--q-signal); clip-path: circle(50%); }
+.q-prov[data-kind="human"]    { border: 1.5px solid var(--q-line-strong); clip-path: circle(50%); }

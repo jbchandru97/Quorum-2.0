@@ -1,0 +1,32 @@
+{
+  "users": [
+    {
+      "id": "u_maya",
+      "name": "Maya",
+      "role": "designer",
+      "isActive": true,
+      "note": "Primary reviewer. Opens the first threads."
+    },
+    {
+      "id": "u_rohan",
+      "name": "Rohan",
+      "role": "pm",
+      "isActive": true,
+      "note": "Built v1 of the flow. Holds the undocumented rationale and the timeline constraint."
+    },
+    {
+      "id": "u_arun",
+      "name": "Arun",
+      "role": "engineer",
+      "isActive": true,
+      "note": "Joins when implementation scope comes up."
+    },
+    {
+      "id": "u_agent",
+      "name": "Quorum",
+      "role": "agent",
+      "isActive": true,
+      "note": "Pseudo-user so agent messages have an author in the same shape as everyone else."
+    }
+  ]
+}

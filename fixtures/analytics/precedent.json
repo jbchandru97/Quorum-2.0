@@ -1,0 +1,28 @@
+{
+  "note": "Seeded precedent, not live analytics. This is the measured performance of a COMPARABLE existing pattern — never of the new interaction under review. Any UI surfacing it must keep that distinction visible.",
+  "provenance": "fetched",
+  "source": "Analytics precedent",
+  "precedents": [
+    {
+      "key": "contextual-ai-prompt",
+      "question": "How did a similar contextual AI prompt perform elsewhere in the product?",
+      "window": "First two weeks after launch",
+      "comparison": [
+        {
+          "pattern": "Contextual AI prompt in Monthly Insights",
+          "metric": "engagement",
+          "value": 21,
+          "unit": "%"
+        },
+        {
+          "pattern": "Persistent AI navigation entry",
+          "metric": "engagement",
+          "value": 9,
+          "unit": "%"
+        }
+      ],
+      "summary": "The contextual AI prompt used in Monthly Insights reached 21% engagement in its first two weeks, compared with 9% for the persistent AI navigation entry over the same period.",
+      "caveat": "Precedent for a comparable placement. No metrics exist yet for the nudge under review."
+    }
+  ]
+}

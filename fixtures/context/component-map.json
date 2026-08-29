@@ -1,0 +1,17 @@
+{
+  "note": "Curated target map for the scripted scenario. Per /docs/05-INTEGRATIONS.md it is acceptable to hand-map the demo target rather than index the codebase.",
+  "targets": [
+    {
+      "key": "ai-insight-prompt",
+      "label": "AI insight nudge",
+      "breadcrumb": ["Dashboard", "SpendingSummary", "AIInsightPrompt"],
+      "surface": "/demo/playground",
+      "sharedWith": [
+        "Dashboard",
+        "Monthly Insights",
+        "Empty state"
+      ],
+      "sharedComponentNote": "The base component is shared across three surfaces. Changing it everywhere affects all three and needs broader validation."
+    }
+  ]
+}

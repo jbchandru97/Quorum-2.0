@@ -1,0 +1,433 @@
+/* ═══════════════════════════════════════════════════════════
+   Case study chrome. One type scale, used everywhere — no
+   per-instance font sizes. Serif for headings, mono for labels,
+   Inter for prose. Solid violet accent from the product; the
+   product's own gradient appears once, on the final CTA.
+   ═══════════════════════════════════════════════════════════ */
+.cs-root{
+  --accent:#4E29DD; --accent-ink:#3A1CB0; --accent-tint:#F4F1FE; --accent-line:#DED6FB;
+  /* the hero's top inset, shared so the section list can sit on the
+     same line as the brand rather than above it */
+  --hero-top:clamp(44px,5vw,70px);
+  --paper:#FFFFFF; --demo:#FBFAFD;
+  --ink:#14121A; --ink-2:#615D70; --ink-3:#918CA0;
+  --rule:#F4F2F9; --rule-soft:#FAF9FC;
+  --grad:linear-gradient(135deg,#DBA2D3 21%,#C3A0EB 36%,#B49EFA 45%,#9479F1 58%,#7454E8 69%,#4E29DD 83%,#130360 97%);
+  /* the same ramp, eased off: no near-black end, so it reads as colour
+     rather than as a dark slab. Used by every call to action. */
+  --grad-cta:linear-gradient(103deg,#D9A8DA 0%,#C0A2EE 20%,#A78FF6 40%,#8A6EEE 60%,#6A48E4 80%,#4E29DD 100%);
+  /* barely there, for surfaces that carry text */
+  --grad-tint:linear-gradient(142deg,rgba(219,162,211,.26) 0%,rgba(180,158,250,.22) 40%,rgba(116,84,232,.16) 72%,rgba(78,41,221,.12) 100%);
+  /* the wash the product itself uses on its Aql surfaces, 10% */
+  --grad-card:linear-gradient(135deg,rgba(219,162,211,.10) 21%,rgba(195,160,235,.10) 36%,rgba(180,158,250,.10) 45%,rgba(148,121,241,.10) 58%,rgba(116,84,232,.10) 69%,rgba(78,41,221,.10) 83%,rgba(19,3,96,.10) 97%);
+  /* fractal noise, inline so nothing is fetched */
+  --noise:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /* ── one scale, no exceptions ── */
+  --t-display:clamp(38px,5vw,58px);
+  --t-h2:clamp(26px,3vw,34px);
+  --t-h3:22px;
+  --t-h3-lg:27px;
+  --t-h4:17px;
+  --t-lede:17.5px;
+  --t-body:16px;
+  --t-small:14.5px;
+  --t-cap:12.5px;
+  --t-label:11px;
+
+  --serif:var(--cs-serif), ui-serif, Georgia, serif;
+  --sans:var(--font-inter), Inter, -apple-system, sans-serif;
+  --mono:var(--cs-mono), ui-monospace, SFMono-Regular, monospace;
+  --measure:700px;
+
+  background:var(--paper); color:var(--ink);
+  font-family:var(--sans); font-size:var(--t-body); line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.cs-root *{box-sizing:border-box}
+.cs-root p{margin:0}
+.cs-root a{color:inherit}
+.cs-root :focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:4px}
+@media (prefers-reduced-motion:reduce){ .cs-root *{transition-duration:.01ms!important} }
+
+/* ── headings: fixed roles ── */
+.cs-root h1,.cs-root h2,.cs-root h3,.cs-root h4{
+  font-family:var(--serif); font-weight:400; text-wrap:balance; margin:0; color:var(--ink)}
+.cs-root h1{font-size:var(--t-display); line-height:1.04; letter-spacing:-.03em}
+.cs-root h2{font-size:var(--t-h2); line-height:1.14; letter-spacing:-.02em}
+.cs-root h3{font-size:var(--t-h3); line-height:1.24; letter-spacing:-.012em}
+.cs-root h4{font-size:var(--t-h4); line-height:1.3; letter-spacing:-.008em}
+
+/* ── labels: every eyebrow, tag and caption label is this ── */
+.cs-root .cs-label,.cs-root .cs-eyebrow,.cs-root .cs-step-n,
+.cs-root .cs-who,.cs-root .cs-num{
+  font-family:var(--mono); font-size:var(--t-label); font-weight:400;
+  letter-spacing:.14em; text-transform:uppercase; line-height:1.5}
+.cs-eyebrow{display:flex; align-items:center; gap:14px;
+  font-family:var(--mono); font-size:var(--t-label); color:var(--ink-3);
+  letter-spacing:.14em; text-transform:uppercase; line-height:1.5}
+/* .cs-root p{margin:0} outranks a bare .cs-eyebrow, so this has to sit above it */
+.cs-root .cs-eyebrow{margin:0 0 20px}
+.cs-eyebrow::after{content:""; flex:1; height:1px; background:var(--rule-soft)}
+.cs-eyebrow b{color:var(--accent); font-weight:400}
+.cs-root .cs-step-n,.cs-root .cs-who,.cs-root .cs-num{color:var(--accent)}
+
+.cs-lede{font-size:var(--t-lede); line-height:1.6; color:var(--ink-2)}
+.cs-body p,.cs-step-txt p,.cs-person p{font-size:var(--t-body); line-height:1.62; color:var(--ink-2)}
+.cs-body p + p,.cs-step-txt p + p{margin-top:13px}
+.cs-small{font-size:var(--t-small); line-height:1.55; color:var(--ink-2)}
+.cs-pull{font-family:var(--serif); font-size:var(--t-h2); line-height:1.28;
+  letter-spacing:-.018em; color:var(--ink)}
+.cs-root em{font-family:var(--serif); font-style:italic; font-size:1.05em}
+.cs-root kbd{font-family:var(--mono); font-size:12px; padding:1px 6px; border-radius:5px;
+  background:var(--demo); border:1px solid var(--rule)}
+.cs-root b{font-weight:600}
+
+/* ── shell ── */
+.cs-shell{display:grid; grid-template-columns:170px minmax(0,1fr); gap:clamp(56px,6vw,88px);
+  max-width:1380px; margin:0 auto; padding:0 36px}
+@media (max-width:1040px){ .cs-shell{grid-template-columns:1fr; gap:0; padding:0 22px} }
+.cs-toc{position:sticky; top:0; align-self:start; height:100vh;
+  padding:calc(var(--hero-top) + 2px) 0 38px;
+  display:flex; flex-direction:column; gap:1px}
+@media (max-width:1040px){ .cs-toc{display:none} }
+/* Whatever comes first in the sidebar sits on the brand's line. With the
+   flag on that is the back button, and the section list moves down below
+   it; with the flag off the list takes the line itself. The 3px nudge
+   centres the button's shorter line box on the brand's taller one. */
+.cs-back{align-self:flex-start; margin:3px 0 18px;
+  display:inline-flex; align-items:center; gap:7px;
+  font-size:13px; color:var(--ink-3); text-decoration:none;
+  cursor:pointer; transition:color .18s}
+.cs-back:hover{color:var(--ink)}
+.cs-back svg{opacity:.8}
+/* the name is always "Aql", never all caps */
+
+/* title case, and only the current section is marked — with a dot,
+   not a rule down the side of every item */
+.cs-toc a:not(.cs-back){font-size:13.5px; letter-spacing:0; color:var(--ink-3); text-decoration:none;
+  padding:3px 0 3px 18px; position:relative; transition:color .18s}
+.cs-toc a:not(.cs-back)::before{content:""; position:absolute; left:2px; top:50%;
+  width:6px; height:6px; margin-top:-3px; border-radius:50%;
+  background:var(--accent); opacity:0; transform:scale(.4);
+  transition:opacity .22s ease, transform .22s cubic-bezier(.34,1.4,.5,1)}
+.cs-toc a:not(.cs-back):hover{color:var(--ink-2)}
+.cs-toc a:not(.cs-back).on{color:var(--ink)}
+.cs-toc a:not(.cs-back).on::before{opacity:1; transform:scale(1)}
+
+.cs-main{min-width:0}
+/* The column is 1050 and the eyebrow's rule spans all of it, so prose
+   stopping at a 700px measure left an empty third under every heading.
+   Display type now runs the full width, and body copy sets in two columns
+   instead: the page fills out and each line lands near 60 characters,
+   shorter than the single 85-character column it replaces. */
+.cs-narrow{max-width:none}
+/* the eyebrow's rule runs the full column, the prose under it stays measured */
+.cs-sec > .cs-eyebrow{max-width:none}
+/* Sections no longer carry a rule across their top. The eyebrow draws it
+   instead: label, a gap, then the line running out to the end of the column.
+   Spacing comes down to suit, since the rule now sits inside the section. */
+.cs-sec{padding:clamp(46px,5.4vw,78px) 0}
+.cs-sec:first-child{padding-top:0}
+/* the hero runs straight into the first section */
+.cs-hero + .cs-sec{padding-top:clamp(30px,3.4vw,48px)}
+.cs-stack{display:flex; flex-direction:column; gap:15px}
+.cs-stack-lg{display:flex; flex-direction:column; gap:clamp(40px,4.5vw,60px)}
+
+/* the mark and name now head the page itself, not the sidebar */
+.cs-brand{display:flex; align-items:center; gap:11px; margin-bottom:20px}
+.cs-brand span{font-size:19px; font-weight:500; letter-spacing:.005em; color:var(--ink)}
+
+/* ── hero ── */
+.cs-hero{padding:var(--hero-top) 0 0}
+/* the break is explicit in the markup, so no measure constraint here */
+.cs-hero h1{margin:0; max-width:none; text-wrap:nowrap}
+.cs-quote{font-family:var(--serif); font-style:italic; font-size:var(--t-lede);
+  color:var(--ink-2); margin-top:16px; max-width:46ch}
+.cs-meta{display:flex; flex-wrap:wrap; margin:30px 0 0; border-top:1px solid var(--rule)}
+.cs-meta > div{padding:13px 32px 0 0; margin-right:32px}
+.cs-meta dt{font-family:var(--mono); font-size:var(--t-label); letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-3); margin:0 0 4px}
+.cs-meta dd{margin:0; font-size:var(--t-small); font-weight:500}
+
+/* ── embeds: a framed window on the live build. no shadow. ── */
+.embed-fig{margin:0}
+.embed{position:relative; width:100%; border-radius:10px; overflow:hidden;
+  border:1px solid var(--rule); background:var(--demo)}
+.embed-skel{position:absolute; inset:0; background:
+  linear-gradient(100deg,#FCFBFE 30%,#F8F6FC 50%,#FCFBFE 70%) 0 0/220% 100%;
+  animation:csShimmer 1.4s linear infinite}
+@keyframes csShimmer{to{background-position:-220% 0}}
+.embed-grab{position:absolute; inset:0; z-index:5; cursor:grab; background:transparent}
+.embed-grab:active{cursor:grabbing}
+.cap{margin-top:10px; font-size:var(--t-cap); line-height:1.5; color:var(--ink-3)}
+
+/* framing controls, ?edit=1 only */
+.embed-edit{display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-top:9px;
+  padding:8px 10px; border:1px solid var(--rule); border-radius:9px; background:var(--demo);
+  font-family:var(--mono); font-size:10.5px; color:var(--ink-2)}
+.embed-edit button{font-family:var(--mono); font-size:10.5px; padding:4px 8px; cursor:pointer;
+  border:1px solid var(--rule); background:#fff; border-radius:6px; color:var(--ink-2)}
+.embed-edit button:hover{border-color:var(--accent); color:var(--accent)}
+.embed-edit button.save{background:var(--accent); border-color:var(--accent); color:#fff}
+.embed-edit .seg{display:flex; border:1px solid var(--rule); border-radius:6px; overflow:hidden}
+.embed-edit .seg button{border:0; border-radius:0}
+.embed-edit .seg button.on{background:var(--ink); color:#fff}
+.embed-edit .lbl{opacity:.6; margin-left:6px}
+.embed-edit b{min-width:38px; text-align:center; font-weight:500}
+.embed-edit code{margin-left:auto; opacity:.5}
+.embed-export{position:fixed; right:18px; bottom:18px; z-index:900; display:flex; align-items:center;
+  gap:9px; padding:10px 13px; border-radius:10px; background:var(--ink); color:#fff;
+  font-family:var(--mono); font-size:10.5px; box-shadow:0 12px 30px rgba(0,0,0,.28)}
+.embed-export button{font-family:var(--mono); font-size:10.5px; padding:5px 9px; cursor:pointer;
+  border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.1); color:#fff; border-radius:6px}
+.embed-export em{font-style:normal; opacity:.7}
+
+/* ── alternating step rows ── */
+.cs-step{display:grid; grid-template-columns:minmax(0,36fr) minmax(0,64fr);
+  gap:clamp(36px,5vw,88px); align-items:start;
+  padding:clamp(34px,5vw,64px) 0}
+.cs-step-txt{display:flex; flex-direction:column; gap:13px; padding-top:2px}
+.cs-step-media{min-width:0}
+.cs-step.rev{grid-template-columns:minmax(0,62fr) minmax(0,38fr)}
+.cs-step.rev .cs-step-media{order:-1}
+@media (max-width:900px){
+  /* minmax(0,1fr), not 1fr: a bare 1fr track cannot shrink below the
+     embedded iframe's intrinsic 1280px, which pushed the page sideways */
+  .cs-step,.cs-step.rev{grid-template-columns:minmax(0,1fr); gap:20px}
+  .cs-step.rev .cs-step-media{order:0}
+}
+
+/* ── personas ── */
+/* subgrid: every row (portrait, name, description, asks) shares a baseline
+   across the three columns, so the question lists start on one line however
+   long the description above them runs */
+.cs-people{display:grid; grid-template-columns:repeat(3,1fr);
+  grid-template-rows:auto auto auto auto; gap:clamp(34px,4.5vw,68px)}
+@media (max-width:900px){
+  .cs-people{grid-template-columns:1fr; gap:30px; grid-template-rows:none}
+  .cs-person{grid-row:auto; grid-template-rows:none}
+}
+.cs-person{display:grid; grid-template-rows:subgrid; grid-row:span 4; gap:16px}
+.cs-portrait{width:116px; height:116px; border-radius:999px; overflow:hidden;
+  background:var(--demo); border:1px solid var(--rule)}
+.cs-portrait img{width:100%; height:100%; object-fit:cover; display:block}
+.cs-asks{align-self:start; padding-top:16px; border-top:1px solid var(--rule); width:100%;
+  display:flex; flex-direction:column; gap:9px}
+.cs-asks span{font-size:var(--t-small); line-height:1.5;
+  color:var(--ink-3); padding-left:11px; border-left:2px solid var(--accent-line)}
+
+/* a stacked block: description above, media below (no side-by-side) */
+.cs-block{display:flex; flex-direction:column; gap:22px}
+.cs-block h3{font-size:var(--t-h3-lg); line-height:1.18}
+
+/* reasons, as bullets rather than a paragraph */
+.cs-why{list-style:none; margin:0; padding:0; display:grid; gap:13px}
+.cs-why li{font-size:var(--t-body); line-height:1.6; color:var(--ink-2);
+  padding-left:20px; position:relative}
+/* in the narrow columns (steps, personas) the list carries smaller type */
+.cs-step-txt .cs-why li,.cs-person .cs-why li{font-size:var(--t-small); line-height:1.55}
+.cs-person .cs-why{gap:9px}
+.cs-why li::before{content:""; position:absolute; left:0; top:.66em;
+  width:6px; height:6px; border-radius:50%; background:var(--accent); opacity:.45}
+
+/* ── divided lists (no cards) ── */
+.cs-list{display:flex; flex-direction:column}
+.cs-list > div{display:grid; grid-template-columns:150px minmax(0,1fr); gap:clamp(20px,3vw,40px);
+  padding:26px 0; border-top:1px solid var(--rule)}
+.cs-list > div:first-child{border-top:1px solid var(--rule)}
+.cs-list > div:last-child{border-bottom:1px solid var(--rule)}
+@media (max-width:760px){ .cs-list > div{grid-template-columns:1fr; gap:10px} }
+.cs-list .side{display:flex; flex-direction:column; gap:6px}
+.cs-list .side h4{margin-top:2px}
+.cs-list .main{display:flex; flex-direction:column; gap:11px}
+.cs-list .main p{font-size:var(--t-body); line-height:1.62; color:var(--ink-2)}
+.cs-exchange{display:flex; flex-direction:column; gap:7px; padding-left:14px;
+  border-left:2px solid var(--accent-line)}
+.cs-exchange .q{font-size:var(--t-small); color:var(--ink-3)}
+.cs-exchange .a{font-size:var(--t-small); line-height:1.55; color:var(--ink)}
+
+/* bento: unequal cells, so the grid has a reading order rather than
+   four identical quadrants. Wide cards carry the heavier heading. */
+.cs-rules{list-style:none; margin:0; padding:0; display:grid;
+  grid-template-columns:repeat(6,1fr); gap:14px}
+.cs-rules li{background:#fff; border:1px solid var(--rule); border-radius:18px;
+  padding:30px 28px; display:flex; flex-direction:column; gap:14px}
+.cs-rules li:nth-child(1){grid-column:span 4}
+.cs-rules li:nth-child(2){grid-column:span 2}
+.cs-rules li:nth-child(3){grid-column:span 2}
+.cs-rules li:nth-child(4){grid-column:span 4}
+/* every card gets the same heading size, whatever its span */
+.cs-rules h3{font-size:var(--t-h3-lg); line-height:1.16; max-width:22ch}
+
+/* the two narrow cards carry the brand gradient, faint, with noise over it
+   so the flat fill has some grain instead of reading as a plastic panel */
+.cs-rules li:nth-child(2),.cs-rules li:nth-child(3){
+  background:var(--grad-tint); border-color:transparent;
+  position:relative; overflow:hidden; isolation:isolate}
+.cs-rules li:nth-child(2)::before,.cs-rules li:nth-child(3)::before{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background-image:var(--noise); background-size:190px 190px;
+  opacity:.22; mix-blend-mode:multiply}
+.cs-rules li > *{position:relative; z-index:1}
+.cs-rules p{font-size:var(--t-body); line-height:1.6; color:var(--ink-2); max-width:46ch}
+@media (max-width:860px){
+  .cs-rules{grid-template-columns:1fr}
+  .cs-rules li,
+  .cs-rules li:nth-child(1),.cs-rules li:nth-child(2),
+  .cs-rules li:nth-child(3),.cs-rules li:nth-child(4){grid-column:1 / -1}
+}
+
+.cs-stack-row{display:flex; flex-wrap:wrap; gap:8px}
+.cs-chip{display:inline-flex; align-items:center; gap:7px; padding:7px 13px; border-radius:999px;
+  border:1px solid var(--rule); background:#fff; font-size:var(--t-small); color:var(--ink-2)}
+.cs-chip b{font-weight:500; color:var(--ink)}
+
+/* ── close ── */
+/* the closing section is a section like any other now */
+.cs-sec#closing{padding-bottom:clamp(70px,9vw,120px)}
+.cs-root a.cs-cta{display:inline-flex; align-items:center; gap:11px;
+  padding:11px 18px 11px 14px; border-radius:13px; text-decoration:none;
+  background:var(--grad-card); border:1px solid var(--accent-line);
+  color:var(--ink); font-size:15px; font-weight:500; letter-spacing:.005em;
+  transition:border-color .18s ease, transform .18s ease}
+.cs-root a.cs-cta:hover{border-color:var(--accent); transform:translateY(-1px)}
+.cs-root .cs-cta span{color:var(--ink)}
+/* mute the chevron only, never the mark */
+.cs-root a.cs-cta > svg:last-child{opacity:.5}
+/* the CTA sits under the hero media, pushed to the right */
+.cs-hero-actions{display:flex; justify-content:flex-end; margin-top:18px}
+.cs-root .cs-sign{font-size:var(--t-body); color:var(--ink-2); margin-top:34px}
+.cs-sign span{font-family:var(--mono); font-size:var(--t-cap); color:var(--ink);
+  display:inline-block; margin-top:8px}
+
+/* ── persona → starters specimen ── */
+.ps{display:flex; flex-direction:column; gap:16px}
+.ps-pills{display:flex; gap:8px; flex-wrap:wrap}
+.ps-pills button{font-family:var(--sans); font-size:var(--t-small); padding:8px 15px;
+  border-radius:999px; border:1px solid var(--rule); background:#fff; color:var(--ink-2);
+  cursor:pointer; transition:.18s}
+.ps-pills button:hover{border-color:var(--accent-line); color:var(--ink)}
+.ps-pills button.on{background:var(--ink); border-color:var(--ink); color:#fff}
+.ps-screen{border:1px solid var(--rule); border-radius:10px; overflow:hidden; background:#fff}
+.ps-bar{display:flex; align-items:center; gap:6px; padding:10px 14px;
+  border-bottom:1px solid var(--rule-soft); background:var(--demo)}
+.ps-bar i{width:8px; height:8px; border-radius:99px; background:#DEDCE6}
+.ps-bar span{margin-left:8px; font-family:var(--mono); font-size:var(--t-label);
+  letter-spacing:.06em; color:var(--ink-3)}
+.ps-body{padding:34px 26px 30px; display:flex; flex-direction:column; align-items:center; gap:10px}
+.ps-hi{font-family:var(--sans); font-size:17px; font-weight:500; color:#171717; margin-top:6px}
+.ps-sub{font-family:var(--sans); font-size:var(--t-small); font-weight:500; color:#A3A3A3;
+  min-height:20px; text-align:center}
+.ps-starters{width:100%; max-width:430px; display:flex; flex-direction:column; gap:9px; margin-top:8px}
+.ps-starter{display:flex; align-items:center; gap:14px; padding:13px 15px; border-radius:13px;
+  background:linear-gradient(#fff,#fff) padding-box,
+    linear-gradient(135deg,rgba(219,162,211,.5),rgba(180,158,250,.5),rgba(78,41,221,.5)) border-box;
+  border:1px solid transparent; animation:psIn .4s cubic-bezier(.22,1,.36,1) both}
+.ps-starter span{flex:1; font-family:var(--sans); font-size:13.5px; font-weight:500; color:#5C5C5C}
+.ps-starter i{width:26px; height:26px; border-radius:8px; border:1px solid #F4F4F4; color:#A3A3A3;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0}
+@keyframes psIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+/* ── tool chips ── */
+.cs-chip{gap:9px; padding:8px 14px 8px 10px}
+.cs-chip-logo{width:17px; height:17px; flex-shrink:0; display:flex}
+.cs-chip-logo svg{width:100%; height:100%}
+.cs-chip i{font-style:normal; color:var(--ink-3)}
+.cs-chip-logo{color:var(--ink)}
+
+/* a still shot waits behind a plain surface, not an animated shimmer */
+.embed-quiet{position:absolute; inset:0; background:var(--demo)}
+
+/* what's next — a plain list, no card */
+.cs-next{list-style:none; margin:0; padding:0; display:grid;
+  grid-template-columns:repeat(2,1fr); gap:22px clamp(34px,4.5vw,64px)}
+.cs-next li{font-size:var(--t-body); color:var(--ink-2); line-height:1.58;
+  padding-left:20px; position:relative}
+.cs-next li b{color:var(--ink); font-weight:600}
+@media (max-width:820px){ .cs-next{grid-template-columns:1fr} }
+.cs-next li::before{content:""; position:absolute; left:0; top:.62em;
+  width:7px; height:7px; border-radius:50%; background:var(--accent); opacity:.5}
+
+/* ── 06 · personalisation as a timeline ───────────────────────── */
+.cs-tl{display:grid; gap:38px; --tl-gap:clamp(22px,2.8vw,44px)}
+
+/* the rail: three stages, focus travels along it */
+.cs-tl-rail{list-style:none; margin:0; padding:0;
+  display:grid; grid-template-columns:repeat(3,1fr); gap:var(--tl-gap);
+  position:relative}
+.cs-tl-rail::before{content:""; position:absolute; left:0; right:0; top:6px;
+  height:1px; background:var(--rule)}
+.cs-tl-rail li{position:relative; padding-top:30px}
+
+/* the ring is always there; the fill sits inside it with a gap */
+.cs-tl-rail .dot{position:absolute; top:0; left:0; width:13px; height:13px;
+  border-radius:50%; background:var(--paper);
+  box-shadow:inset 0 0 0 1.5px var(--rule);
+  transition:box-shadow .45s ease}
+.cs-tl-rail li.on .dot{box-shadow:inset 0 0 0 1.5px var(--accent)}
+.cs-tl-rail .dot::after{content:""; position:absolute; inset:3.5px;
+  border-radius:50%; background:var(--accent);
+  transform:scale(0); transition:transform .42s cubic-bezier(.34,1.4,.5,1)}
+.cs-tl-rail li.on .dot::after{transform:scale(1)}
+
+/* the travelling fill — runs to the next dot, then fades out */
+.cs-tl-rail .seg{position:absolute; top:6px; left:13px;
+  right:calc(-1 * var(--tl-gap)); height:1px; background:var(--accent);
+  transform:scaleX(0); transform-origin:left center; opacity:0; transition:none}
+.cs-tl-rail .seg.run{transform:scaleX(1); opacity:1;
+  transition:transform .78s cubic-bezier(.4,0,.2,1), opacity .18s ease}
+.cs-tl-rail .seg.done{transform:scaleX(1); opacity:0; transition:opacity .55s ease}
+
+.cs-root .cs-tl-rail .cs-who{color:var(--ink-3); transition:color .45s ease}
+.cs-root .cs-tl-rail li.on .cs-who{color:var(--accent)}
+.cs-tl-rail h4{font-family:var(--serif); font-size:var(--t-h4); font-weight:400;
+  color:var(--ink-3); margin-top:2px; transition:color .45s ease}
+.cs-tl-rail li.on h4{color:var(--ink)}
+
+/* three aligned rows: note, what's known, the exchange */
+.cs-tl-cols{display:grid; grid-template-columns:repeat(3,1fr);
+  gap:14px var(--tl-gap); align-items:start}
+.cs-root .cs-tl-note{font-size:var(--t-small); line-height:1.55; color:var(--ink-2);
+  opacity:.38; transition:opacity .5s ease; margin:0}
+.cs-root .cs-tl-note.on{opacity:1}
+
+/* what the product knows about this person, at this point */
+.cs-knows{display:flex; flex-wrap:wrap; gap:6px; align-self:end;
+  opacity:.38; transition:opacity .5s ease}
+.cs-knows.on{opacity:1}
+.cs-knows .pill{font-size:11.5px; line-height:1.35; letter-spacing:.01em;
+  padding:4px 10px; border-radius:999px; white-space:nowrap}
+.cs-knows .pill.type{background:var(--accent-tint); color:var(--accent-ink);
+  border:1px solid var(--accent-line)}
+.cs-knows .pill.habit{background:var(--paper); color:var(--ink-2);
+  border:1px solid var(--rule)}
+.cs-knows .pill.unknown{background:transparent; color:var(--ink-3);
+  border:1px dashed var(--rule)}
+
+/* the product's chat, in miniature */
+.cs-chat{align-self:stretch;
+  background:var(--paper); border:1px solid var(--rule); border-radius:16px;
+  padding:20px; display:grid; gap:16px; align-content:start; min-height:210px;
+  opacity:.5; transition:opacity .5s ease, border-color .5s ease}
+.cs-chat.on{opacity:1; border-color:var(--accent-line)}
+.cs-chat-q{justify-self:end; max-width:94%;
+  background:#FAFAFB; color:var(--ink); border-radius:13px;
+  padding:9px 13px; font-size:13.5px; line-height:1.45;
+  opacity:0; transform:translateY(7px); transition:opacity .42s ease, transform .42s ease}
+.cs-chat-q[data-in="1"]{opacity:1; transform:none}
+.cs-chat-a{display:flex; gap:10px; align-items:flex-start;
+  opacity:0; transform:translateY(7px); transition:opacity .5s ease, transform .5s ease}
+.cs-chat-a[data-in="1"]{opacity:1; transform:none}
+.cs-chat-a p{font-size:13.5px; line-height:1.55; color:var(--ink); margin:0}
+.cs-chat-mark{flex:0 0 auto; display:flex; margin-top:1px}
+
+@media (max-width:900px){
+  .cs-tl-rail,.cs-tl-cols{grid-template-columns:1fr; gap:26px}
+  .cs-tl-rail::before,.cs-tl-rail .seg{display:none}
+  .cs-root .cs-tl-note,.cs-knows,.cs-chat{opacity:1}
+  .cs-chat-q,.cs-chat-a{opacity:1; transform:none}
+}
+
+/* hero call to action — the product gradient, same as the closing button */
+

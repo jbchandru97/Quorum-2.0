@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════
+   Quorum — design tokens
+
+   The interaction grammar and the token structure come from the
+   Design Companion reference (jbchandru97/design-companion). What
+   changed: the accent. The reference page uses a blue --signal for
+   agent presence; its canvas app remaps that to orange (#EA7639).
+   Quorum is orange throughout, because the accent is the product's.
+
+   Rules carried over verbatim, because they are what make it read
+   as an instrument rather than a dashboard:
+     · a small fixed palette — do not add a seventh colour
+     · hairline rules, no shadows on chrome, no gradients
+     · mono is what separates interface artifacts from prose
+     · --signal and --evidence are semantic, never decorative
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── surface & ink ─────────────────────────────────────────── */
+  --q-paper:   #FBFBF9;   /* panels, cards, anything that floats  */
+  --q-canvas:  #F7F7F5;   /* the ground a workspace sits on       */
+  --q-ink:     #16171A;   /* primary text, frames                 */
+  --q-muted:   #6E7076;   /* secondary text, labels, captions     */
+  --q-rule:    #E4E3DE;   /* hairlines and borders                */
+  --q-rule-soft: #F1F0EC; /* the quieter rule used inside chrome  */
+  --q-line:        rgba(22, 23, 26, 0.12);
+  --q-line-strong: rgba(22, 23, 26, 0.22);
+  --q-fill:        rgba(22, 23, 26, 0.03);  /* hover wash         */
+
+  /* ── semantic accents ──────────────────────────────────────── */
+  --q-signal:   #EA7639;  /* agent presence, selection, inference */
+  --q-signal-wash: rgba(234, 118, 57, 0.12);
+  --q-signal-edge: rgba(234, 118, 57, 0.10);
+  --q-evidence: #5C6B4A;  /* fetched data and cited sources only  */
+  --q-ok:       #1B9A4A;
+  --q-ok-bg:    #E6F4EA;
+  --q-ok-line:  #BFE3CB;
+
+  /* ── type ──────────────────────────────────────────────────── */
+  --q-display: var(--font-bricolage), "Bricolage Grotesque", "Inter", system-ui, sans-serif;
+  --q-body:    var(--font-inter-body), "Inter", system-ui, -apple-system, sans-serif;
+  --q-mono:    var(--font-jetbrains), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ── motion ────────────────────────────────────────────────────
+     One ease for nearly everything; a softer one for large panels
+     that travel a long way. Entry is ease-out, 200–260ms. Lists
+     stagger at 80ms. Nothing pulses except the region in scope. */
+  --q-ease:     cubic-bezier(.2, .7, .2, 1);
+  --q-ease-out: cubic-bezier(.22, .8, .3, 1);
+  --q-t-fast:   140ms;   /* hover, affordance, press             */
+  --q-t:        220ms;   /* the default: chips, rows, reveals    */
+  --q-t-panel:  320ms;   /* side panels, popovers                */
+  --q-t-travel: 620ms;   /* a panel sliding in from the edge     */
+  --q-stagger:   80ms;   /* between items in a list              */
+  --q-snap:     170ms;   /* the inspect ring moving to a target  */
+
+  /* ── layering ──────────────────────────────────────────────────
+     The overlay must never fight the host app it sits over, so the
+     whole Quorum layer starts at 1000 and the host keeps 0–999. */
+  --q-z-highlight:  1010;  /* inspect ring, region marquee       */
+  --q-z-marker:     1020;  /* thread bubbles on the canvas       */
+  --q-z-panel:      1040;  /* side panel                         */
+  --q-z-toolbar:    1060;  /* the persistent bottom bar          */
+  --q-z-popover:    1080;  /* popovers, menus, tooltips          */
+  --q-z-modal:      1100;
+}
+
+:root[data-theme="dark"] {
+  --q-paper:   #16171A;
+  --q-canvas:  #1C1D22;
+  --q-ink:     #F2F2EE;
+  --q-muted:   #9A9CA4;
+  --q-rule:    #2B2C32;
+  --q-rule-soft: #2C2D34;
+  --q-line:        rgba(242, 242, 238, 0.14);
+  --q-line-strong: rgba(242, 242, 238, 0.24);
+  --q-fill:        rgba(242, 242, 238, 0.05);
+  --q-signal:   #F0874C;
+  --q-signal-wash: rgba(240, 135, 76, 0.14);
+  --q-signal-edge: rgba(240, 135, 76, 0.12);
+  --q-evidence: #9AB07C;
+  --q-ok:       #4CC277;
+  --q-ok-bg:    rgba(76, 194, 119, 0.14);
+  --q-ok-line:  rgba(76, 194, 119, 0.42);
+}
+
+/* ── base ───────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; margin: 0; padding: 0; }
+
+html {
+  background: var(--q-canvas);
+  color: var(--q-ink);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font: 400 15px/1.55 var(--q-body);
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a { color: inherit; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+svg { display: block; }
+h1, h2, h3, p, ol, ul { margin: 0; }
+ol, ul { padding: 0; list-style: none; }
+
+:focus-visible { outline: 2px solid var(--q-ink); outline-offset: 3px; }
+
+/* ── shared type roles ──────────────────────────────────────────
+   Display is for titles only. Mono is doing real work: it is what
+   makes a chip read as an interface artifact rather than prose. */
+
+.q-display {
+  font-family: var(--q-display);
+  font-weight: 500;
+  font-variation-settings: 'opsz' 48;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+
+.q-eyebrow {
+  font: 500 11px/1 var(--q-mono);
+  letter-spacing: 0.04em;
+  color: var(--q-muted);
+  text-transform: uppercase;
+}
+
+.q-mono { font-family: var(--q-mono); }
+
+/* ── the one entry animation everything shares ──────────────────
+   Add `q-pre` before insertion, remove it on the next frame. Rows,
+   chips, messages and markers all arrive the same way. */
+
+.q-enter {
+  transition:
+    opacity   var(--q-t) var(--q-ease),
+    transform var(--q-t) var(--q-ease);
+}
+.q-enter.q-pre { opacity: 0; transform: translateY(4px); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0ms !important;
+    animation: none !important;
+  }
+}

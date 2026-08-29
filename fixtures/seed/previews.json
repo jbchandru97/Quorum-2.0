@@ -1,0 +1,13 @@
+{
+  "previews": [
+    {
+      "id": "pv_malbank",
+      "name": "Malbank / Aql AI",
+      "projectKey": "malbank",
+      "url": "/demo/playground",
+      "introUrl": "/demo/intro",
+      "sourceOfTruth": "https://mal-ai-three.vercel.app",
+      "note": "The cloned host app that ships inside Quorum. Reviewed at /demo/playground."
+    }
+  ]
+}

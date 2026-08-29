@@ -1,0 +1,103 @@
+/* ───────────────────────────────────────────────────────────────
+   Malbank / Aql AI — cloned host app styles.
+
+   This is the source app's globals.css, scoped to `.mal-root` so the
+   demo keeps its exact visual behaviour without leaking tokens or a
+   reset into Quorum's own surfaces. Tailwind is imported once at the
+   Quorum root, not here.
+
+   Source: jbchandru97/mal-ai · src/app/globals.css
+   Do not edit to suit Quorum. Treat this as vendored.
+   ─────────────────────────────────────────────────────────────── */
+
+.mal-root {
+  color-scheme: light;
+
+  /* Gradient token */
+  --gradient-mesh-primary:
+    linear-gradient(135deg, #DBA2D3 21%, #C3A0EB 36%, #B49EFA 45%, #9479F1 58%, #7454E8 69%, #4E29DD 83%, #130360 97%);
+
+  /* Figma design tokens */
+  --bg-white-0: #ffffff;
+  --bg-weak-25: #fafafa;
+  --bg-weak-50: #fcfcfc;
+  --bg-soft-200: #f4f4f4;
+  --bg-surface-800: #262626;
+
+  --text-strong-950: #171717;
+  --text-sub-600: #5c5c5c;
+  --text-soft-400: #a3a3a3;
+  --text-white-0: #ffffff;
+
+  --icon-strong-950: #171717;
+  --icon-sub-600: #5c5c5c;
+  --icon-soft-400: #a3a3a3;
+  --icon-white-0: #ffffff;
+
+  --stroke-soft-200: #f4f4f4;
+  --stroke-white-0: #ffffff;
+
+  --state-error-base: #fb3748;
+  --state-error-dark: #681219;
+  --state-error-lighter: #ffebec;
+  --state-success-dark: #0b4627;
+  --state-success-lighter: #e3f7ec;
+  --state-information-base: #335cff;
+  --state-information-lighter: #ebf1ff;
+  --state-verified-base: #47c2ff;
+  --state-verified-lighter: #ebf8ff;
+  --state-faded-lighter: #fbfbfb;
+  --state-warning-base: #fa7319;
+
+  --neutral-gray-200: #f4f4f4;
+  --neutral-gray-900: #1c1c1c;
+
+  --radius-0: 0px;
+  --radius-4: 4px;
+  --radius-6: 6px;
+  --radius-8: 8px;
+  --radius-10: 10px;
+  --radius-16: 16px;
+  --radius-full: 999px;
+
+  --shadow-xs: 0px 1px 2px 0px rgba(10, 13, 20, 0.03);
+
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* The source app set these on <body>; the demo root carries them now. */
+  height: 100%;
+  background: var(--bg-white-0);
+  color: var(--text-strong-950);
+  font-family: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* The source app hid scrollbars app-wide. Kept, but only inside the demo. */
+.mal-root,
+.mal-root * {
+  box-sizing: border-box;
+  scrollbar-width: none; /* Firefox */
+}
+
+.mal-root::-webkit-scrollbar,
+.mal-root *::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+/* Widget highlight — gradient glow that fades out on landing */
+@keyframes mal-glow-fadeout {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.mal-widget-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(219,162,211,0.10) 21%, rgba(195,160,235,0.10) 36%, rgba(180,158,250,0.10) 45%, rgba(148,121,241,0.10) 58%, rgba(116,84,232,0.10) 69%, rgba(78,41,221,0.10) 83%, rgba(19,3,96,0.10) 97%);
+  animation: mal-glow-fadeout 1s ease-out forwards;
+  pointer-events: none;
+  z-index: 10;
+}
