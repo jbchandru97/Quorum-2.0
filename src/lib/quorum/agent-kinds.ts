@@ -31,9 +31,21 @@ export type AgentActionPayload = {
 };
 
 export type AgentAnswer = {
+  /** The direct answer: a verdict, never a dump of search output. */
   content: string;
   sources: AgentSource[];
   actions?: AgentActionPayload[];
+  /** Supporting evidence, rendered collapsed under the answer. */
+  findings?: { title: string; items: string[] };
+};
+
+/** What the reviewer actually has selected, sent with a question so
+    the agent answers about the thing, not in the abstract. */
+export type AgentTarget = {
+  key?: string | null;
+  label?: string;
+  selector?: string;
+  breadcrumb?: string[];
 };
 
 /* Only the steps relevant to each request, per /docs/06. */

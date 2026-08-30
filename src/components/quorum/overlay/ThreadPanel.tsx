@@ -76,6 +76,18 @@ function MessageRow({
             {withMentions(line)}
           </p>
         ))}
+        {msg.findings && msg.findings.items.length > 0 && (
+          <details className="q-findings">
+            <summary>
+              {msg.findings.title} · {msg.findings.items.length}
+            </summary>
+            <ul>
+              {msg.findings.items.map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          </details>
+        )}
         {msg.sources && msg.sources.length > 0 && (
           <div className="q-msg-sources">
             <SourceChips>

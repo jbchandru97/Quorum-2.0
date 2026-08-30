@@ -91,11 +91,20 @@ export function keywordsOf(question: string): string[] {
   ];
 }
 
+/** The product under review, without docs/fixtures — for questions
+    about what the code itself contains. */
+export const SOURCE_ROOTS = ["src/app/demo", "src/components/demo"];
+
 /** Top hits for a question: at most one (best) line per file. */
-export async function searchRepo(question: string, max = 3): Promise<RepoHit[]> {
+export async function searchRepo(
+  question: string,
+  max = 3,
+  roots?: string[],
+): Promise<RepoHit[]> {
   const words = keywordsOf(question);
   if (words.length === 0) return [];
-  const files = await loadCorpus();
+  let files = await loadCorpus();
+  if (roots) files = files.filter((f) => roots.some((r) => f.file.startsWith(r)));
 
   const hits: RepoHit[] = [];
   for (const { file, lines } of files) {

@@ -338,6 +338,53 @@ html[data-quorum-inspect] .q-wizard-chip * { cursor: default !important; }
 
 .q-msg-sources { margin-top: 8px; }
 
+/* ── collapsible findings under an answer ────────────────────── */
+
+.q-findings {
+  margin-top: 8px;
+  border: 1px solid var(--q-rule);
+}
+
+.q-findings summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 6px 9px;
+  font: 400 10px/1 var(--q-mono);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--q-muted);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: color var(--q-t-fast) var(--q-ease), background-color var(--q-t-fast) var(--q-ease);
+}
+.q-findings summary::-webkit-details-marker { display: none; }
+.q-findings summary::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-right: 1.4px solid currentColor;
+  border-bottom: 1.4px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--q-t) var(--q-ease);
+  flex: 0 0 auto;
+}
+.q-findings[open] summary::before { transform: rotate(45deg); }
+.q-findings summary:hover { color: var(--q-ink); background: var(--q-fill); }
+
+.q-findings ul {
+  border-top: 1px solid var(--q-rule);
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.q-findings li {
+  font: 400 10.5px/1.5 var(--q-mono);
+  color: var(--q-muted);
+  overflow-wrap: break-word;
+}
+
 /* ── composer ──────────────────────────────────────────────── */
 
 .q-composer {

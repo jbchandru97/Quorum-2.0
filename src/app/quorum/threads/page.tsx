@@ -62,6 +62,18 @@ function Conversation({
             {m.content.split("\n").map((line, i) => (
               <p key={i}>{line}</p>
             ))}
+            {m.findings && m.findings.items.length > 0 && (
+              <details className="q-findings">
+                <summary>
+                  {m.findings.title} · {m.findings.items.length}
+                </summary>
+                <ul>
+                  {m.findings.items.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
             {m.sources && m.sources.length > 0 && (
               <div className="q-ws-msg-chips">
                 <SourceChips>

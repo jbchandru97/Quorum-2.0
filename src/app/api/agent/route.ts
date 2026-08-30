@@ -21,6 +21,15 @@ export async function POST(request: Request) {
   const b = (body ?? {}) as Record<string, unknown>;
   const question = typeof b.question === "string" ? b.question.trim() : undefined;
   const targetKey = typeof b.targetKey === "string" ? b.targetKey : null;
+  const t = (b.target ?? {}) as Record<string, unknown>;
+  const target = {
+    key: typeof t.key === "string" ? t.key : targetKey,
+    label: typeof t.label === "string" ? t.label : undefined,
+    selector: typeof t.selector === "string" ? t.selector : undefined,
+    breadcrumb: Array.isArray(t.breadcrumb)
+      ? t.breadcrumb.filter((x): x is string => typeof x === "string")
+      : undefined,
+  };
 
   const kind = isAgentKind(b.kind) ? b.kind : question ? classifyQuestion(question) : null;
   if (!kind) {
@@ -31,7 +40,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    return NextResponse.json({ kind, ...(await answerFor(kind, { question, targetKey })) });
+    return NextResponse.json({ kind, ...(await answerFor(kind, { question, target })) });
   } catch (error) {
     if (error instanceof ContextDevIntegrationError) {
       return NextResponse.json({ error: "External reference lookup failed" }, { status: 502 });

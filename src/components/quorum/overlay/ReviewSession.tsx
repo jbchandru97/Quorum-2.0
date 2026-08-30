@@ -320,18 +320,38 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     [],
   );
 
-  /* The scripted target is the only one the fixture docs cover; the
-     server gates its internal sources on this key. */
-  const targetKeyFor = useCallback((): string | null => {
+  /* What the question is actually about: the live selection or the
+     open thread's anchor. The server answers about this target, and
+     gates fixture sources on the mapped key. */
+  const targetInfoFor = useCallback((): {
+    key: string | null;
+    label?: string;
+    selector?: string;
+    breadcrumb?: string[];
+  } => {
     const sel = selectionRef.current;
-    if (sel?.kind === "element" && sel.key) return sel.key;
+    if (sel?.kind === "element") {
+      return {
+        key: sel.key ?? null,
+        label: sel.label,
+        selector: sel.selector,
+        breadcrumb: sel.breadcrumb,
+      };
+    }
+    if (sel?.kind === "region") return { key: null, label: "region" };
     const thread = threadsRef.current.find((t) => t._id === activeThreadIdRef.current);
     const a = thread?.anchorData;
     if (a?.type === "element") {
       const m = a.selector.match(/\[data-quorum-target="([^"]+)"\]/);
-      if (m) return m[1];
+      return {
+        key: m ? m[1] : null,
+        label: thread?.title,
+        selector: a.selector,
+        breadcrumb: a.breadcrumb,
+      };
     }
-    return null;
+    if (a?.type === "region") return { key: null, label: "region" };
+    return { key: null };
   }, []);
 
   const sendAs = useCallback(
@@ -406,7 +426,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
       const request = fetch("/api/agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, question, targetKey: targetKeyFor() }),
+        body: JSON.stringify({ kind, question, target: targetInfoFor() }),
       })
         .then(async (r) => (r.ok ? ((await r.json()) as AgentAnswer) : null))
         .catch(() => null);
@@ -454,6 +474,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
           content: answer.content,
           messageKind: kind === "actions" ? "summary" : "answer",
           sources: answer.sources,
+          findings: answer.findings,
         });
       } else {
         await createMessage({
@@ -469,7 +490,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
       agentBusyRef.current = false;
       return ok;
     },
-    [createAction, createMessage, userByExternal, targetKeyFor],
+    [createAction, createMessage, userByExternal, targetInfoFor],
   );
 
   /* sendAs is declared before runAgent, so the summon goes through

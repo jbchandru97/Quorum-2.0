@@ -119,6 +119,14 @@ export default defineSchema({
       }),
     ),
     sources: v.optional(v.array(messageSource)),
+    /* Collapsible supporting evidence: shown folded under the
+       answer, so uncertain findings never masquerade as the verdict. */
+    findings: v.optional(
+      v.object({
+        title: v.string(),
+        items: v.array(v.string()),
+      }),
+    ),
     createdAt: v.number(),
   }).index("by_thread", ["threadId"]),
 

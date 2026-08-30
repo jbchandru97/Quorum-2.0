@@ -51,6 +51,12 @@ export const create = mutation({
       }),
     ),
     sources: v.optional(v.array(messageSource)),
+    findings: v.optional(
+      v.object({
+        title: v.string(),
+        items: v.array(v.string()),
+      }),
+    ),
   },
   handler: async ({ db }, args) => {
     const thread = await db.get(args.threadId);

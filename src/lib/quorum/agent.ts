@@ -7,8 +7,9 @@ import {
 } from "./fixtures";
 import { searchExternalEvidence } from "./context-dev";
 import { EXTERNAL_QUERY } from "./demo-script";
-import { searchRepo, type RepoHit } from "./repo-search";
+import { searchRepo, SOURCE_ROOTS, type RepoHit } from "./repo-search";
 import { PRIMARY_TARGET_KEY } from "./targets";
+import type { AgentTarget } from "./agent-kinds";
 
 /* ───────────────────────────────────────────────────────────────
    The agent's source adapters, per /docs/06-AGENT_BEHAVIOR.md.
@@ -63,10 +64,11 @@ const CANNOT = (what: string): AgentAnswer => ({
 const documentsTarget = (targetKey?: string | null) => targetKey === PRIMARY_TARGET_KEY;
 
 /* ── the codebase, as evidence ──────────────────────────────────
-   Real matches from the product under review, rendered as lines the
-   reviewer can check, with file:line chips. */
-const repoBullets = (hits: RepoHit[]) =>
-  hits.map((h) => `${h.file}:${h.line} — ${h.text}`).join("\n");
+   Real matches from the product under review. They ride under the
+   answer as collapsed findings — evidence supports a verdict, it is
+   never dressed up as one. */
+const repoItems = (hits: RepoHit[]) =>
+  hits.map((h) => `${h.file}:${h.line} — ${h.text}`);
 
 const repoSources = (hits: RepoHit[]) =>
   hits.map((h) => ({
@@ -75,29 +77,38 @@ const repoSources = (hits: RepoHit[]) =>
     detail: `repo · L${h.line}`,
   }));
 
+const asFindings = (hits: RepoHit[]) =>
+  hits.length > 0
+    ? { title: "What I found in the codebase", items: repoItems(hits) }
+    : undefined;
+
+/** Yes/no questions get a verdict, or an explicit "not sure". */
+const isYesNoQuestion = (q?: string) =>
+  Boolean(q && /^\s*(is|are|was|were|does|do|did|has|have|had|can|could|will|would|should)\b/i.test(q));
+
+const isComponentQuestion = (q?: string) => Boolean(q && /\bcomponents?\b/i.test(q));
+
 async function rationale(targetKey?: string | null, question?: string): Promise<AgentAnswer> {
   const hits = question ? await searchRepo(question) : [];
-  const repoPart = hits.length > 0 ? `From the codebase:\n${repoBullets(hits)}` : null;
 
   if (!documentsTarget(targetKey)) {
     return {
-      content: repoPart
-        ? `There is no written rationale on file for this target, but here is what the code itself shows.\n${repoPart}`
-        : "I couldn't find a documented rationale for this target, and nothing in the codebase matched the question. Someone who worked on it may know — you may want to tag them.",
+      content:
+        "I'm not sure — there is no written rationale on file for this target. @Rohan may hold the intent; you may want to tag him.",
       sources: repoSources(hits),
+      findings: asFindings(hits),
     };
   }
   const doc = await readMarkdownFixture("productRationale");
   const lead = doc ? leadParagraph(doc) : null;
-  if (!lead && !repoPart) return CANNOT("a documented product rationale");
+  if (!lead) return CANNOT("a documented product rationale");
   return {
-    content: [lead, repoPart].filter(Boolean).join("\n"),
+    content: lead,
     sources: [
-      ...(lead
-        ? [{ label: "Product rationale", provenance: "cited" as const, detail: "product-rationale.md" }]
-        : []),
+      { label: "Product rationale", provenance: "cited" as const, detail: "product-rationale.md" },
       ...repoSources(hits),
     ],
+    findings: asFindings(hits),
   };
 }
 
@@ -154,25 +165,20 @@ function precedent(targetKey?: string | null): AgentAnswer {
 async function delay(targetKey?: string | null, question?: string): Promise<AgentAnswer> {
   if (!documentsTarget(targetKey)) return rationale(targetKey, question);
   /* Find the actual mechanism in the code before saying anything. */
-  const hits = await searchRepo(`${question ?? ""} setTimeout delay timer visible`);
+  const hits = await searchRepo(`${question ?? ""} setTimeout delay timer visible`, 3, SOURCE_ROOTS);
   const doc = await readMarkdownFixture("productRationale");
   const notesDelay = doc?.includes("delay") ?? false;
-  const repoPart = hits.length > 0 ? `From the codebase:\n${repoBullets(hits)}` : null;
   return {
-    content: [
-      notesDelay
-        ? "The delay is real, and the product rationale explicitly notes there is no written reason for it. I can't answer the why from documentation — Rohan built v1 and may hold the rationale. You may want to tag him."
-        : "The delay is present in the implementation, but I found no documented rationale for it. You may want to tag the PM.",
-      repoPart,
-    ]
-      .filter(Boolean)
-      .join("\n"),
+    content: notesDelay
+      ? "The delay is real — the code sets it deliberately — but the product rationale explicitly notes there is no written reason for it. I can't answer the why from documentation. @Rohan built v1 and may hold the rationale; you may want to tag him."
+      : "The delay is present in the implementation, but I found no documented rationale for it. You may want to tag the PM.",
     sources: [
       ...(notesDelay
         ? [{ label: "Product rationale", provenance: "cited" as const, detail: "marked undocumented" }]
         : []),
       ...repoSources(hits),
     ],
+    findings: asFindings(hits),
   };
 }
 
@@ -206,19 +212,47 @@ async function external(question?: string): Promise<AgentAnswer> {
   };
 }
 
-async function unknown(question?: string): Promise<AgentAnswer> {
-  /* Last stop before admitting defeat: the codebase itself. */
-  const hits = question ? await searchRepo(question) : [];
-  if (hits.length > 0) {
+async function unknown(question?: string, target?: AgentTarget): Promise<AgentAnswer> {
+  /* A component question about the mapped target has a real answer. */
+  if (isComponentQuestion(question) && target?.key) {
+    const mapped = findTarget(target.key);
+    if (mapped) {
+      return {
+        content: `Yes — this is the ${mapped.label} component: ${mapped.breadcrumb.join(" / ")}. ${mapped.sharedComponentNote}`,
+        sources: [
+          { label: "component-map.json", provenance: "cited", detail: "target map" },
+        ],
+      };
+    }
+  }
+
+  /* Otherwise: search the product's own source and be honest about
+     what the matches do and do not establish. */
+  const hits = question ? await searchRepo(question, 3, SOURCE_ROOTS) : [];
+  const what = target?.label ? `this ${target.label}` : "this";
+
+  if (isComponentQuestion(question)) {
     return {
-      content: `Nothing in the written docs covers this, but here is what I found in the codebase:\n${repoBullets(hits)}`,
+      content: `I'm not sure — I couldn't match ${what} to a named component in the codebase, so I can't say it is one, and I can't rule it out either. @Arun would know for certain; you may want to tag him.`,
       sources: repoSources(hits),
+      findings: asFindings(hits),
     };
   }
+
+  if (hits.length === 0) {
+    return {
+      content:
+        "I don't know — nothing in the codebase or the docs matches this, and it doesn't read as a public-web question. @Rohan or @Arun may have the context; you may want to tag them.",
+      sources: [],
+    };
+  }
+
   return {
-    content:
-      "I searched the codebase, the product rationale, the design review playbook, and the analytics precedent and found nothing that answers this — and it doesn't read as a public-web question. This may need lived context; you may want to tag Rohan (PM) or Arun (Engineer).",
-    sources: [],
+    content: isYesNoQuestion(question)
+      ? "I'm not sure — the code I found is related but doesn't settle it either way. @Arun may know for certain; you may want to tag him."
+      : "I couldn't find a definitive answer. The closest matches in the codebase are below — @Rohan or @Arun may be able to confirm.",
+    sources: repoSources(hits),
+    findings: asFindings(hits),
   };
 }
 
@@ -264,21 +298,22 @@ function actions(): AgentAnswer {
 
 export async function answerFor(
   kind: AgentKind,
-  opts: { question?: string; targetKey?: string | null } = {},
+  opts: { question?: string; targetKey?: string | null; target?: AgentTarget } = {},
 ): Promise<AgentAnswer> {
+  const targetKey = opts.target?.key ?? opts.targetKey;
   switch (kind) {
     case "rationale":
-      return rationale(opts.targetKey, opts.question);
+      return rationale(targetKey, opts.question);
     case "playbook":
-      return playbook(opts.targetKey);
+      return playbook(targetKey);
     case "precedent":
-      return precedent(opts.targetKey);
+      return precedent(targetKey);
     case "delay":
-      return delay(opts.targetKey, opts.question);
+      return delay(targetKey, opts.question);
     case "external":
       return external(opts.question);
     case "unknown":
-      return unknown(opts.question);
+      return unknown(opts.question, { ...opts.target, key: targetKey });
     case "actions":
       return actions();
   }
