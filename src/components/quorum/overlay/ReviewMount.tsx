@@ -8,8 +8,8 @@ import { WizardConductor } from "./WizardConductor";
 /* ───────────────────────────────────────────────────────────────
    ReviewMount — puts the review chrome over the cloned host app.
 
-   Gated behind `?review=1`, so /demo/playground keeps behaving
-   exactly like the app it was cloned from. The case study at
+   On by default over /demo/playground (?review=0 turns it off),
+   opt-in via ?review=1 on other /demo surfaces. The case study at
    /demo/intro embeds the prototype in iframes, and those embeds
    must not pick up a floating bar.
 
@@ -24,11 +24,16 @@ import { WizardConductor } from "./WizardConductor";
 const subscribe = () => () => {};
 
 function readFlag(): boolean {
-  const params = new URLSearchParams(window.location.search);
   /* Never inside an embed: the case study frames the prototype, and
      the review chrome is not part of that story. */
-  const framed = window !== window.parent;
-  return params.get("review") === "1" && !framed;
+  if (window !== window.parent) return false;
+  const review = new URLSearchParams(window.location.search).get("review");
+  if (review === "0") return false;
+  if (review === "1") return true;
+  /* The playground is the reviewable product: Quorum is on by
+     default there (as the folded launcher). Other /demo surfaces
+     stay opt-in. */
+  return window.location.pathname.startsWith("/demo/playground");
 }
 
 export function ReviewMount() {

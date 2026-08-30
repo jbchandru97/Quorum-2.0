@@ -43,7 +43,7 @@ export function WizardConductor() {
     }
     /* The host app keys its own flows off sessionStorage. */
     sessionStorage.clear();
-    window.location.assign("/demo/playground?review=1");
+    window.location.assign("/demo/playground");
   }, []);
 
   const runNext = useCallback(() => {

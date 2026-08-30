@@ -302,7 +302,7 @@ export default function ThreadsPage() {
                       ) : (
                         <>
                           No {filter.toLowerCase()} threads yet. Open the review at{" "}
-                          <code>/demo/playground?review=1</code> and select an element.
+                          <code>/demo/playground</code> and select an element.
                         </>
                       )}
                     </p>
@@ -344,7 +344,7 @@ export default function ThreadsPage() {
                 <div className="q-ws-detail-head">
                   <div>
                     <h2 className="q-ws-detail-t">{preview.name}</h2>
-                    <Link className="q-ws-detail-url" href={`${preview.url}?review=1`}>
+                    <Link className="q-ws-detail-url" href={preview.url}>
                       {preview.url}
                       <ExternalIcon />
                     </Link>
@@ -405,7 +405,7 @@ export default function ThreadsPage() {
                               </button>
                               <Link
                                 className="q-ws-btn is-primary"
-                                href={`${preview.url}?review=1&thread=${t._id}`}
+                                href={`${preview.url}?thread=${t._id}`}
                               >
                                 Open in review <ExternalIcon />
                               </Link>

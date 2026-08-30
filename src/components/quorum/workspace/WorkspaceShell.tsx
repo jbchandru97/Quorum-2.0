@@ -54,7 +54,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
       <nav className="q-ws-side" aria-label="Quorum">
         <Link
           className="q-ws-brand"
-          href="/demo/playground?review=1"
+          href="/demo/playground"
           title="Back to the review playground"
         >
           <QuorumMark size={20} title="Quorum" />

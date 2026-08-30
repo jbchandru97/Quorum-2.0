@@ -19,8 +19,8 @@ const nextConfig: NextConfig = {
 
   async redirects() {
     return [
-      /* Quorum's front door is the workspace. */
-      { source: "/", destination: "/quorum/threads", permanent: false },
+      /* Quorum's front door is the playground under review. */
+      { source: "/", destination: "/demo/playground", permanent: false },
 
       /* Links shared against the original Malbank deployment still land. */
       { source: "/intro", destination: "/demo/intro", permanent: false },

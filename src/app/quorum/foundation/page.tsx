@@ -247,8 +247,8 @@ export default function FoundationPage() {
         >
           <p style={S.caption}>
             See them in place at{" "}
-            <Link style={S.link} href="/demo/playground?review=1">
-              /demo/playground?review=1
+            <Link style={S.link} href="/demo/playground">
+              /demo/playground
             </Link>
             . The bar is click-through except for its own controls, and the
             panel parks off-screen leaving a rail behind.
