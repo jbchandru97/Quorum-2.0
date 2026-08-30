@@ -33,7 +33,9 @@
 ## Review overlay & demo
 
 - The review surface is `/demo/playground?review=1`. The overlay mounts through `src/components/quorum/overlay/ReviewMount.tsx` and is driven by the session provider in `ReviewSession.tsx`; the wizard (`WizardConductor.tsx` + `wizard-steps.ts`) drives the same session verbs the UI binds to.
-- Demo keys: `→` next step, `←` back (UI-only steps), `⇧R` reset Convex demo data + reload.
+- Overlay modes: `Free flow` (default — the host product stays fully usable) and `Inspect` (click selects an element, dragging draws a region, `Esc` returns to free flow). Committing a target auto-returns to free flow.
+- Overlay chrome (toolbar, panel, popovers, markers, wizard chip) renders with the dark token register from `review.css` so it stands out over the light demo product.
+- Demo keys: `→` next step, `←` back (UI-only steps), `⇧R` or the chip's `↺ reset` button clears Convex demo data + reloads. `Esc` blurs the composer so the arrows reach the conductor.
 - Agent answers come from `POST /api/agent` (`src/lib/quorum/agent.ts`); kinds `rationale|playbook|precedent|delay` read `fixtures/`, `external` performs a real Context.dev search (1 credit per run), `actions` synthesizes the two scripted action items.
 - The scripted element target is the AI nudge CTA marked `data-quorum-target="ai-insight-prompt"` in `src/app/demo/playground/page.tsx` — the one review-anchor change to the vendored demo tree.
 - `src/app/demo/**` and `src/components/demo/**` stay vendored otherwise; do not edit or lint them.

@@ -8,19 +8,18 @@ import { useReviewSession, type Selection } from "./ReviewSession";
 /* ───────────────────────────────────────────────────────────────
    SelectionLayer — how a target gets picked.
 
-   Select mode: hit-testing over the host DOM. The pointer is read
-   through window listeners (the overlay itself is click-through),
-   the element under it is resolved with elementFromPoint, and one
-   ring glides between candidates. A click commits the target and
-   swallows the host's own handler — in review mode you are
-   inspecting the product, not using it.
-
-   Draw mode: a full-screen catcher takes the pointer, a dashed
-   marquee follows the drag, and releasing over a real area anchors
-   a region.
+   Two modes. Free flow (default): the overlay is completely
+   passive and the host product behaves exactly as shipped. Inspect:
+   the pointer becomes the review instrument — hovering glides one
+   ring between candidates, a click anchors an element, and dragging
+   past a small threshold draws a region instead. Committing a
+   target returns the pointer to free flow.
    ─────────────────────────────────────────────────────────────── */
 
 type Hover = { rect: Rect; label: string; el: Element; key?: string };
+
+const DRAG_THRESHOLD = 6;
+const MIN_REGION = 12;
 
 /** Quorum chrome must never hit-test as a host target. */
 function isOverlayNode(node: Element | null): boolean {
@@ -58,9 +57,9 @@ export function SelectionLayer() {
   });
 
   const [drag, setDrag] = useState<Rect | null>(null);
-  const dragStart = useRef<{ x: number; y: number } | null>(null);
+  const downAt = useRef<{ x: number; y: number } | null>(null);
+  const draggingRef = useRef(false);
 
-  /* ── select mode: hover + click capture ─────────────────────── */
   const resolveHover = useCallback((x: number, y: number): Hover | null => {
     const el = document.elementFromPoint(x, y);
     if (!el || isOverlayNode(el)) return null;
@@ -85,17 +84,66 @@ export function SelectionLayer() {
     return { rect: toRect(r), label: generic.tagName.toLowerCase(), el: generic };
   }, []);
 
-  /* No clearing effect needed on mode change: the hover ring's
-     render is already gated on `mode === "select"`. */
+  /* ── inspect mode: one set of capture listeners ─────────────── */
   useEffect(() => {
-    if (mode !== "select") return;
-    const onMove = (e: MouseEvent) => setHover(resolveHover(e.clientX, e.clientY));
-    const onClick = (e: MouseEvent) => {
+    if (mode !== "inspect") {
+      downAt.current = null;
+      draggingRef.current = false;
+      return;
+    }
+
+    /* Crosshair everywhere while the instrument is held. */
+    document.documentElement.setAttribute("data-quorum-inspect", "1");
+
+    const onMove = (e: MouseEvent) => {
+      const start = downAt.current;
+      if (start) {
+        const dx = e.clientX - start.x;
+        const dy = e.clientY - start.y;
+        if (draggingRef.current || Math.hypot(dx, dy) > DRAG_THRESHOLD) {
+          draggingRef.current = true;
+          setDrag({
+            x: Math.min(start.x, e.clientX),
+            y: Math.min(start.y, e.clientY),
+            width: Math.abs(dx),
+            height: Math.abs(dy),
+          });
+          return;
+        }
+      }
+      setHover(resolveHover(e.clientX, e.clientY));
+    };
+
+    const onDown = (e: MouseEvent) => {
       if (isOverlayNode(e.target as Element)) return;
-      const h = hoverRef.current;
-      if (!h) return;
+      /* The host must not react — and text must not select — while
+         the pointer is the review instrument. */
       e.preventDefault();
       e.stopPropagation();
+      downAt.current = { x: e.clientX, y: e.clientY };
+      draggingRef.current = false;
+    };
+
+    const onUp = (e: MouseEvent) => {
+      const start = downAt.current;
+      downAt.current = null;
+      if (!start) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (draggingRef.current) {
+        draggingRef.current = false;
+        setDrag((rect) => {
+          if (rect && rect.width >= MIN_REGION && rect.height >= MIN_REGION) {
+            session.select({ kind: "region", rect });
+          }
+          return null;
+        });
+        return;
+      }
+
+      const h = hoverRef.current;
+      if (!h) return;
       const sel: Selection =
         h.key && targetByKey(h.key)
           ? {
@@ -117,61 +165,36 @@ export function SelectionLayer() {
       setHover(null);
     };
 
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("click", onClick, true);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("click", onClick, true);
+    const onClick = (e: MouseEvent) => {
+      /* Swallow every host click while inspecting. */
+      if (isOverlayNode(e.target as Element)) return;
+      e.preventDefault();
+      e.stopPropagation();
     };
-  }, [mode, resolveHover, session]);
 
-  /* ── draw mode: the marquee ─────────────────────────────────── */
-  const onDrawDown = (e: React.MouseEvent) => {
-    dragStart.current = { x: e.clientX, y: e.clientY };
-    setDrag({ x: e.clientX, y: e.clientY, width: 0, height: 0 });
-  };
-
-  useEffect(() => {
-    if (mode !== "draw") {
-      dragStart.current = null;
-      return;
-    }
-    const onMove = (e: MouseEvent) => {
-      const start = dragStart.current;
-      if (!start) return;
-      setDrag({
-        x: Math.min(start.x, e.clientX),
-        y: Math.min(start.y, e.clientY),
-        width: Math.abs(e.clientX - start.x),
-        height: Math.abs(e.clientY - start.y),
-      });
-    };
-    const onUp = () => {
-      const start = dragStart.current;
-      dragStart.current = null;
-      setDrag((rect) => {
-        if (start && rect && rect.width >= 12 && rect.height >= 12) {
-          session.select({ kind: "region", rect });
-          session.setMode("select");
-        }
-        return null;
-      });
-    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        dragStart.current = null;
+        downAt.current = null;
+        draggingRef.current = false;
         setDrag(null);
+        session.setMode("flow");
       }
     };
+
     window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    window.addEventListener("mousedown", onDown, true);
+    window.addEventListener("mouseup", onUp, true);
+    window.addEventListener("click", onClick, true);
     window.addEventListener("keydown", onKey);
     return () => {
+      document.documentElement.removeAttribute("data-quorum-inspect");
       window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("mousedown", onDown, true);
+      window.removeEventListener("mouseup", onUp, true);
+      window.removeEventListener("click", onClick, true);
       window.removeEventListener("keydown", onKey);
     };
-  }, [mode, session]);
+  }, [mode, resolveHover, session]);
 
   /* ── the committed ring: selection, or the thread in scope ───── */
   const [anchorRect, setAnchorRect] = useState<Rect | null>(null);
@@ -211,25 +234,20 @@ export function SelectionLayer() {
         ? "region"
         : activeThread?.title;
 
+  const inspecting = mode === "inspect";
+
   return (
     <>
-      {mode === "draw" && (
-        <div
-          className="q-draw-catcher"
-          onMouseDown={onDrawDown}
-          role="application"
-          aria-label="Draw a region"
-        />
-      )}
+      {inspecting && <div className="q-inspect-veil" aria-hidden="true" />}
 
       <OverlayPassive>
         <InspectHighlight
-          rect={mode === "select" && !drag ? (hover?.rect ?? null) : null}
+          rect={inspecting && !drag ? (hover?.rect ?? null) : null}
           label={hover?.label}
           variant="hover"
         />
         <InspectHighlight
-          rect={mode === "draw" ? drag : null}
+          rect={inspecting ? drag : null}
           label="region"
           variant="tentative"
           inset={0}

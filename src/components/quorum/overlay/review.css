@@ -10,13 +10,59 @@
    review chrome. In review mode Quorum owns the demo. */
 html[data-quorum-review] .wizard-panel { display: none !important; }
 
-/* ── draw mode ─────────────────────────────────────────────── */
+/* ── dark chrome ──────────────────────────────────────────────
+   Quorum's surfaces run dark over the light host product, so the
+   review layer reads as a distinct instrument rather than more
+   product UI. Straight remap of the token set — the same values as
+   the design system's dark register in globals.css. The rings and
+   marquee keep the light accent: they annotate the product itself. */
 
-.q-draw-catcher {
+.q-overlay .q-toolbar,
+.q-overlay .q-panel,
+.q-overlay .q-marker,
+.q-popover,
+.q-tooltip,
+.q-wizard-chip {
+  --q-paper: #16171A;
+  --q-canvas: #1C1D22;
+  --q-ink: #F2F2EE;
+  --q-muted: #9A9CA4;
+  --q-rule: #2B2C32;
+  --q-rule-soft: #2C2D34;
+  --q-line: rgba(242, 242, 238, 0.14);
+  --q-line-strong: rgba(242, 242, 238, 0.24);
+  --q-fill: rgba(242, 242, 238, 0.05);
+  --q-signal: #F0874C;
+  --q-signal-wash: rgba(240, 135, 76, 0.14);
+  --q-signal-edge: rgba(240, 135, 76, 0.12);
+  --q-evidence: #9AB07C;
+  --q-ok: #4CC277;
+  --q-ok-bg: rgba(76, 194, 119, 0.14);
+  --q-ok-line: rgba(76, 194, 119, 0.42);
+  --q-input-bg: #1C1D22;
+}
+
+/* Dark surfaces floating over a light page need the deeper shadow. */
+.q-overlay .q-toolbar,
+.q-popover { box-shadow: 0 6px 24px rgba(0, 0, 0, 0.30); }
+
+/* ── inspect mode ─────────────────────────────────────────────── */
+
+html[data-quorum-inspect],
+html[data-quorum-inspect] body * { cursor: crosshair !important; }
+html[data-quorum-inspect] [data-quorum-overlay] *,
+html[data-quorum-inspect] .q-popover *,
+html[data-quorum-inspect] .q-wizard-chip * { cursor: default !important; }
+
+/* A whisper of a vignette so the held instrument is felt. Purely
+   decorative and click-through. */
+.q-inspect-veil {
   position: fixed;
   inset: 0;
-  cursor: crosshair;
+  pointer-events: none;
   z-index: var(--q-z-highlight);
+  box-shadow: inset 0 0 0 2px var(--q-signal), inset 0 0 42px rgba(22, 23, 26, 0.10);
+  opacity: .55;
 }
 
 /* ── thread markers ────────────────────────────────────────── */
@@ -199,3 +245,14 @@ html[data-quorum-review] .wizard-panel { display: none !important; }
 
 .q-wizard-chip b { font-weight: 500; color: var(--q-ink); }
 .q-wizard-chip .is-live { color: var(--q-signal); }
+
+.q-wizard-reset {
+  font: 400 10px/1 var(--q-mono);
+  letter-spacing: .04em;
+  color: var(--q-muted);
+  border-left: 1px solid var(--q-rule);
+  padding: 2px 0 2px 8px;
+  margin-left: 2px;
+  transition: color var(--q-t-fast) var(--q-ease);
+}
+.q-wizard-reset:hover { color: var(--q-ink); }

@@ -27,7 +27,7 @@ import "./review.css";
    Convex subscriptions rather than placeholders.
    ─────────────────────────────────────────────────────────────── */
 
-function IconSelect() {
+function IconFlow() {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true">
       <path d="M4 2l9 7-4 .8L11 14l-2 1-2-4.2L4 13z" />
@@ -35,10 +35,11 @@ function IconSelect() {
   );
 }
 
-function IconDraw() {
+function IconInspect() {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true">
-      <rect x="2.5" y="3.5" width="11" height="9" strokeDasharray="3 2.4" />
+      <rect x="2.5" y="2.5" width="11" height="11" strokeDasharray="3 2.4" />
+      <path d="M8 5.5v5M5.5 8h5" />
     </svg>
   );
 }
@@ -91,20 +92,20 @@ export function ReviewOverlay() {
 
         <ToolbarGroup label="Mode">
           <ToolbarButton
-            icon={<IconSelect />}
-            active={s.mode === "select"}
-            onClick={() => s.setMode("select")}
-            title="Select an element"
+            icon={<IconFlow />}
+            active={s.mode === "flow"}
+            onClick={() => s.setMode("flow")}
+            title="Use the product normally"
           >
-            Select
+            Free flow
           </ToolbarButton>
           <ToolbarButton
-            icon={<IconDraw />}
-            active={s.mode === "draw"}
-            onClick={() => s.setMode("draw")}
-            title="Draw over a region"
+            icon={<IconInspect />}
+            active={s.mode === "inspect"}
+            onClick={() => s.setMode("inspect")}
+            title="Click an element, or drag a region — Esc to leave"
           >
-            Draw
+            Inspect
           </ToolbarButton>
         </ToolbarGroup>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Shimmer } from "@/components/quorum/primitives";
 import { useReviewSession } from "./ReviewSession";
@@ -10,8 +10,9 @@ import { WIZARD_STEPS } from "./wizard-steps";
    WizardConductor — the right-arrow demo driver.
 
    → runs the next step; ← walks back where a step is UI-only;
-   ⇧R resets Convex demo data and reloads for a clean rehearsal.
-   Kept to one small mono chip so the review UI stays the show.
+   ⇧R or the chip's reset button clears Convex demo data and
+   reloads for a clean rehearsal. Esc leaves the composer so the
+   arrows always come back to the conductor.
    ─────────────────────────────────────────────────────────────── */
 
 export function WizardConductor() {
@@ -20,6 +21,7 @@ export function WizardConductor() {
 
   const [done, setDone] = useState(0); /* steps completed */
   const [running, setRunning] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const busyRef = useRef(false);
 
   const sessionRef = useRef(session);
@@ -29,19 +31,36 @@ export function WizardConductor() {
     doneRef.current = done;
   });
 
+  const reset = useCallback(async () => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setResetting(true);
+    try {
+      await sessionRef.current.resetDemoData();
+    } catch {
+      /* Even if the wipe fails, reload into a clean client state. */
+    }
+    /* The host app keys its own flows off sessionStorage. */
+    sessionStorage.clear();
+    window.location.assign("/demo/playground?review=1");
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT" || t.isContentEditable)) return;
+      const typing =
+        t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT" || t.isContentEditable);
 
-      if (e.key === "R" && e.shiftKey) {
+      /* Esc always hands the keyboard back to the conductor. */
+      if (e.key === "Escape" && typing) {
+        t.blur();
+        return;
+      }
+      if (typing) return;
+
+      if ((e.key === "R" || e.key === "r") && e.shiftKey) {
         e.preventDefault();
-        void (async () => {
-          await sessionRef.current.resetDemoData();
-          /* The host app keys its own state off sessionStorage. */
-          sessionStorage.clear();
-          window.location.href = "/demo/playground?review=1";
-        })();
+        void reset();
         return;
       }
 
@@ -76,29 +95,45 @@ export function WizardConductor() {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [router]);
+  }, [router, reset]);
 
   const total = WIZARD_STEPS.length;
   const current = WIZARD_STEPS[done];
 
   return (
     <div className="q-wizard-chip" aria-live="polite">
-      {done === 0 && !running && (
-        <span>
-          demo · <b>→</b> to start · ⇧R reset
-        </span>
-      )}
-      {running && (
+      {resetting ? (
         <span className="is-live">
-          <Shimmer>{`${done + 1}/${total} · ${WIZARD_STEPS[done].label}`}</Shimmer>
+          <Shimmer>resetting demo data…</Shimmer>
         </span>
+      ) : (
+        <>
+          {done === 0 && !running && (
+            <span>
+              demo · <b>→</b> to start
+            </span>
+          )}
+          {running && (
+            <span className="is-live">
+              <Shimmer>{`${done + 1}/${total} · ${WIZARD_STEPS[done].label}`}</Shimmer>
+            </span>
+          )}
+          {!running && done > 0 && done < total && (
+            <span>
+              <b>{done}/{total}</b> · next: {current?.label} · <b>→</b>
+            </span>
+          )}
+          {!running && done >= total && <span>demo complete</span>}
+          <button
+            type="button"
+            className="q-wizard-reset"
+            onClick={() => void reset()}
+            title="Clear demo data and restart (⇧R)"
+          >
+            ↺ reset
+          </button>
+        </>
       )}
-      {!running && done > 0 && done < total && (
-        <span>
-          <b>{done}/{total}</b> · next: {current?.label} · <b>→</b>
-        </span>
-      )}
-      {!running && done >= total && <span>demo complete · ⇧R reset</span>}
     </div>
   );
 }

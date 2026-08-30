@@ -84,7 +84,7 @@ export type ReviewSessionValue = {
   resolvedCount: number;
 
   /* UI state */
-  mode: "select" | "draw";
+  mode: "flow" | "inspect";
   selection: Selection | null;
   panelOpen: boolean;
   surface: SurfaceName;
@@ -92,7 +92,7 @@ export type ReviewSessionValue = {
   composerText: string;
 
   /* verbs — the same API for the UI and the wizard */
-  setMode: (mode: "select" | "draw") => void;
+  setMode: (mode: "flow" | "inspect") => void;
   select: (selection: Selection) => void;
   selectPrimaryTarget: () => boolean;
   openThread: (id: Id<"threads">) => void;
@@ -157,8 +157,10 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
   const heartbeat = useMutation(api.presence.heartbeat);
   const resetDemo = useMutation(api.seed.resetDemo);
 
-  /* ── UI state ──────────────────────────────────────────────── */
-  const [mode, setMode] = useState<"select" | "draw">("select");
+  /* ── UI state ──────────────────────────────────────────────────
+     Free flow is the default: the host product stays fully usable
+     until the reviewer explicitly picks up the Inspect tool. */
+  const [mode, setMode] = useState<"flow" | "inspect">("flow");
   const [selection, setSelection] = useState<Selection | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [surface, setSurface] = useState<SurfaceName>(null);
@@ -218,6 +220,8 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     setActiveThreadId(null);
     setPanelOpen(true);
     setSurface(null);
+    /* A committed target hands the pointer back to the product. */
+    setMode("flow");
   }, []);
 
   const selectPrimaryTarget = useCallback((): boolean => {

@@ -32,7 +32,7 @@ export const WIZARD_STEPS: WizardStep[] = [
     id: "calm",
     label: "calm start",
     run: async ({ session }) => {
-      session.setMode("select");
+      session.setMode("flow");
       session.closeSurfaces();
       /* The other two participants come online — written through
          the same Convex presence path a second window would use. */
@@ -44,6 +44,10 @@ export const WIZARD_STEPS: WizardStep[] = [
     id: "select",
     label: "select the nudge",
     run: async ({ session }) => {
+      /* Pick up the instrument first, so the audience sees the mode
+         change before the ring lands on the target. */
+      session.setMode("inspect");
+      await sleep(500);
       if (!session.selectPrimaryTarget()) return;
       await sleep(700);
       await session.typeAndSendAsDesigner(SCRIPT.q1Rationale);
