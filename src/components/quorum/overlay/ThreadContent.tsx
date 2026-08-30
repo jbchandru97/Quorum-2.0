@@ -9,7 +9,9 @@ import {
   SourceChips,
 } from "@/components/quorum/primitives";
 import { timeAgo } from "@/lib/quorum/relative-time";
+import { DEMO_USERS } from "@/lib/quorum/demo-script";
 import { QuorumMark } from "../QuorumMark";
+import { IconResolve } from "./icons";
 import { useReviewSession } from "./ReviewSession";
 
 /* ───────────────────────────────────────────────────────────────
@@ -171,9 +173,7 @@ export function ResolveButton() {
       title={resolved ? "Resolved — click to reopen" : "Resolve — summarize and suggest actions"}
       aria-label={resolved ? "Reopen thread" : "Resolve thread"}
     >
-      <svg viewBox="0 0 14 14" aria-hidden="true">
-        <path d="M3 7.4l2.6 2.6L11 4.6" />
-      </svg>
+      <IconResolve />
     </button>
   );
 }
@@ -182,19 +182,16 @@ export function ThreadBody() {
   const s = useReviewSession();
   const { activeThread, messages, agentRun, composerText, userById } = s;
   const resolved = activeThread?.status === "resolved";
+  const me = s.userByExternal(DEMO_USERS.designer);
+  /* No messages yet: the frame is just its header and the input —
+     an empty scroll box would read as broken UI. */
+  const empty = messages.length === 0 && !agentRun;
 
   const listRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length, agentRun]);
-
-  /* Tagged a teammate → the thread is theirs until they answer. */
-  const last = messages[messages.length - 1];
-  const waitingOn =
-    last && last.authorType === "human"
-      ? (last.content.match(/@(Rohan|Arun|Maya)\b/i)?.[1] ?? null)
-      : null;
 
   /* ── the @mention dropdown ───────────────────────────────────── */
   const mentionMatch = composerText.match(/(?:^|\s)@(\w*)$/);
@@ -247,6 +244,7 @@ export function ThreadBody() {
 
   return (
     <div className="q-thread">
+      {!empty && (
       <div ref={listRef} className="q-msgs">
         {messages.map((m) => (
           <MessageRow
@@ -273,12 +271,8 @@ export function ThreadBody() {
             </div>
           </div>
         )}
-        {!agentRun && waitingOn && (
-          <p className="q-thread-waiting">
-            waiting for <span className="q-mention">@{waitingOn}</span> to reply
-          </p>
-        )}
       </div>
+      )}
 
       <div className="q-composer">
         <div className="q-composer-inputwrap">
@@ -318,6 +312,15 @@ export function ThreadBody() {
           />
         </div>
         <div className="q-composer-row">
+          {me ? (
+            <Avatar
+              person={{ id: me.externalId, name: me.name, role: "Designer" }}
+              size={22}
+              showPresence={false}
+            />
+          ) : (
+            <span />
+          )}
           <button
             type="button"
             className="q-btn is-primary"

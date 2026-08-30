@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Rect } from "@/components/quorum/primitives";
+import { IconClose, IconExpand } from "./icons";
 import { useReviewSession } from "./ReviewSession";
 import { ResolveButton, ThreadBody, useThreadMeta } from "./ThreadContent";
 
@@ -19,18 +20,11 @@ const WIDTH = 336;
 const GAP = 14;
 const MARGIN = 12;
 
-function IconExpand() {
-  return (
-    <svg viewBox="0 0 12 12" aria-hidden="true">
-      <path d="M7 1.5h3.5V5M5 11.5H1.5V8M10.5 1.5L7 5M1.5 10.5L5 7" />
-    </svg>
-  );
-}
-
 export function ThreadPopup() {
   const s = useReviewSession();
   const { activeThread, selection, panelOpen, threadView } = s;
   const { title, hasSubject } = useThreadMeta();
+  const popRef = useRef<HTMLDivElement | null>(null);
 
   const open = panelOpen && hasSubject && threadView === "popup";
 
@@ -87,6 +81,7 @@ export function ThreadPopup() {
 
   return (
     <div
+      ref={popRef}
       className="q-thread-pop"
       style={{ left, top, width: WIDTH, maxHeight }}
       role="dialog"
@@ -99,7 +94,12 @@ export function ThreadPopup() {
         <button
           type="button"
           className="q-pop-icon"
-          onClick={s.expandThread}
+          onClick={() => {
+            const r = popRef.current?.getBoundingClientRect();
+            s.expandThread(
+              r ? { x: r.x, y: r.y, width: r.width, height: r.height } : undefined,
+            );
+          }}
           title="Expand into the side panel"
           aria-label="Expand thread"
         >
@@ -112,7 +112,7 @@ export function ThreadPopup() {
           title="Close"
           aria-label="Close thread"
         >
-          ×
+          <IconClose />
         </button>
       </header>
       <ThreadBody />

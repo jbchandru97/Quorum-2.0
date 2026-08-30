@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { AvatarStack } from "@/components/quorum/primitives";
 import { timeAgo } from "@/lib/quorum/relative-time";
+import { IconClose } from "./icons";
 import { useReviewSession } from "./ReviewSession";
 
 /* ───────────────────────────────────────────────────────────────
@@ -144,7 +145,7 @@ export function ReviewDock() {
               onClick={s.closeSurfaces}
               aria-label="Close threads"
             >
-              ×
+              <IconClose />
             </button>
           </div>
           {s.threads.length === 0 ? (
@@ -189,7 +190,7 @@ export function ReviewDock() {
               onClick={s.closeSurfaces}
               aria-label="Close actions"
             >
-              ×
+              <IconClose />
             </button>
           </div>
           {s.actions.length === 0 ? (
@@ -214,7 +215,7 @@ export function ReviewDock() {
                   aria-label={`Remove action: ${a.title}`}
                   title="Remove this action"
                 >
-                  ×
+                  <IconClose />
                 </button>
               </div>
             ))
@@ -310,7 +311,7 @@ export function ReviewDock() {
             title="Close Quorum — back to the launcher bubble"
             aria-label="Close Quorum review"
           >
-            ×
+            <IconClose />
           </button>
         </div>
       </div>

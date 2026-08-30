@@ -97,7 +97,10 @@ export type ReviewSessionValue = {
   /* verbs — the same API for the UI and the wizard */
   expand: () => void;
   collapse: () => void;
-  expandThread: () => void;
+  /** Promote the popup to the side panel; `from` is the popup's
+      rect so the panel can grow out of it rather than slide in. */
+  expandThread: (from?: Rect) => void;
+  expandFrom: Rect | null;
   setMode: (mode: "move" | "draw" | "select") => void;
   select: (selection: Selection) => void;
   selectPrimaryTarget: () => boolean;
@@ -175,6 +178,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
   const [selection, setSelection] = useState<Selection | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [threadView, setThreadView] = useState<"popup" | "panel">("popup");
+  const [expandFrom, setExpandFrom] = useState<Rect | null>(null);
   const [surface, setSurface] = useState<SurfaceName>(null);
   const [agentRun, setAgentRun] = useState<AgentRun | null>(null);
   const [composerText, setComposerText] = useState("");
@@ -516,7 +520,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
         if (waitsOnFetch) {
           const t0 = Date.now();
           answer = await request;
-          const min = labels[i].toLowerCase().includes("fetch") ? 900 : 650;
+          const min = labels[i].toLowerCase().includes("fetch") ? 1700 : 1100;
           const left = min - (Date.now() - t0);
           if (left > 0) await sleep(left);
           if (answer === null) {
@@ -525,14 +529,14 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
             break;
           }
         } else {
-          await sleep(700);
+          await sleep(1150);
         }
       }
       if (ok) {
         setSteps(labels.length, "done");
-        await sleep(280);
+        await sleep(500);
       } else {
-        await sleep(650);
+        await sleep(900);
       }
 
       const agentUser = userByExternal(DEMO_USERS.agent);
@@ -613,17 +617,28 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
 
   const addToActions = useCallback(() => runAgent("actions"), [runAgent]);
 
-  /* Capture one message as an action — the pre-resolve path. */
+  /* Capture one message as an action — the pre-resolve path. The
+     title is a distilled imperative, not the raw message, and the
+     thread gets a quiet confirmation line. */
   const addMessageAsAction = useCallback(
     async (msg: Doc<"messages">, authorName: string) => {
       const p = previewRef.current;
       if (!p) return;
       const target = targetInfoFor();
+      const clean = msg.content.replace(/\s+/g, " ").trim();
+      let title = (clean.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? clean).replace(/[.!?]$/, "");
+      title = title.replace(
+        /^(i think|i'd say|maybe|so|well|also|then|let's|lets|we can|we should|we could|checked(?: the code)?(?: —|-)?|proposal:?)\s+/i,
+        "",
+      );
+      title = title.charAt(0).toUpperCase() + title.slice(1);
+      if (title.length > 64) title = `${title.slice(0, 61).replace(/\s+\S*$/, "")}…`;
+
       await createAction({
         previewId: p._id,
         threadId: msg.threadId,
-        title: msg.content.split("\n")[0].slice(0, 64),
-        summary: msg.content.slice(0, 500),
+        title,
+        summary: `From ${authorName} in the thread: “${clean.slice(0, 220)}${clean.length > 220 ? "…" : ""}”`,
         targetDescription:
           target.breadcrumb && target.breadcrumb.length > 0
             ? target.breadcrumb.join(" / ")
@@ -631,8 +646,17 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
         scopeNotes: `Captured from ${authorName}'s message in the thread.`,
         acceptanceNotes: "Refine scope and acceptance before implementation.",
       });
+
+      const agentUser = userByExternal(DEMO_USERS.agent);
+      await createMessage({
+        threadId: msg.threadId,
+        authorType: "agent",
+        authorUserId: agentUser?._id,
+        content: `Added as an action: “${title}”`,
+        messageKind: "status",
+      });
     },
-    [createAction, targetInfoFor],
+    [createAction, createMessage, targetInfoFor, userByExternal],
   );
 
   const removeActionMutation = useMutation(api.actions.remove);
@@ -680,7 +704,10 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     setSurface(null);
     setSelection(null);
   }, []);
-  const expandThread = useCallback(() => setThreadView("panel"), []);
+  const expandThread = useCallback((from?: Rect) => {
+    setExpandFrom(from ?? null);
+    setThreadView("panel");
+  }, []);
 
   const value: ReviewSessionValue = {
     preview,
@@ -707,6 +734,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     expand,
     collapse,
     expandThread,
+    expandFrom,
     setMode,
     select,
     selectPrimaryTarget,
