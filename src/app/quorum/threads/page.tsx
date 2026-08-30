@@ -328,7 +328,7 @@ export default function ThreadsPage() {
                       ) : (
                         <>
                           No {filter.toLowerCase()} threads yet. Open the review at{" "}
-                          <code>/demo/playground?review=1</code> and select an element.
+                          <code>/demo/playground</code> and select an element.
                         </>
                       )}
                     </p>
@@ -404,7 +404,7 @@ export default function ThreadsPage() {
                       </button>
                       <Link
                         className="q-ws-btn is-primary"
-                        href={`${preview.url}?review=1&thread=${selectedThread._id}`}
+                        href={`${preview.url}?thread=${selectedThread._id}`}
                       >
                         Open in review <ExternalIcon />
                       </Link>

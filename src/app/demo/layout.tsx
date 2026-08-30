@@ -42,7 +42,8 @@ export default function DemoLayout({
     <div className={`${inter.variable} ${interTight.variable} mal-root`}>
       <DemoBootstrap />
       {children}
-      {/* Quorum's own layer. Off unless ?review=1 — see ReviewMount. */}
+      {/* Quorum's own layer. On by default over /demo/playground,
+          opt-in (?review=1) elsewhere — see ReviewMount. */}
       <ReviewMount />
     </div>
   );

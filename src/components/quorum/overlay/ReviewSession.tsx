@@ -300,7 +300,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     setSurface(null);
   }, []);
 
-  /* Deep link: /demo/playground?review=1&thread=<id> opens that
+  /* Deep link: /demo/playground?thread=<id> opens that
      thread's panel as soon as the thread list arrives. One-shot. */
   const deepLinkDone = useRef(false);
   useEffect(() => {

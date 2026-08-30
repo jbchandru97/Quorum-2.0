@@ -34,6 +34,7 @@
 ## Review overlay & demo
 
 - The review surface is `/demo/playground?review=1`. The overlay mounts through `src/components/quorum/overlay/ReviewMount.tsx` and is driven by the session provider in `ReviewSession.tsx`; the wizard (`WizardConductor.tsx` + `wizard-steps.ts`) drives the same session verbs the UI binds to.
+- Review mode is ON by default over `/demo/playground` (no query param needed; `?review=0` disables, `?review=1` opts in on other /demo surfaces, never inside iframes). The root `/` redirects to `/demo/playground`.
 - The overlay starts folded into a launcher bubble (bottom-left); clicking it expands the tool, and the dock's `×` folds it back. The wizard's step 1 expands it.
 - Overlay modes: `Move` (default — the host product stays fully usable), `Draw` (sweep a box over an area to comment on it), `Select` (inspect and pick an element). `Esc` returns to Move; committing a target auto-returns to Move.
 - Threads open popup-first: an anchored dialog beside the bubble/selection (side chosen by available space, max-height + scroll, `ThreadPopup.tsx`); its header expand control promotes it to the pinned side panel (`ThreadPanel.tsx`). Shared conversation body lives in `ThreadContent.tsx`.
