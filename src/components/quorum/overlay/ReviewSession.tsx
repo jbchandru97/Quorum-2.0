@@ -26,6 +26,7 @@ import {
   selectorFor,
   targetByKey,
 } from "@/lib/quorum/targets";
+import { BrandAmplitude, BrandAtlassian } from "./icons";
 
 /* ───────────────────────────────────────────────────────────────
    ReviewSession — the state and the verbs of a live review.
@@ -493,14 +494,27 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
       agentBusyRef.current = true;
 
       const labels = AGENT_STEP_LABELS[kind];
+      /* Connector marks on the steps that read through one. */
+      const stepIcon = (label: string): React.ReactNode => {
+        if (/design review guidance/i.test(label)) return <BrandAtlassian />;
+        if (/precedent metrics/i.test(label)) return <BrandAmplitude />;
+        return undefined;
+      };
       const setSteps = (done: number, currentStatus: StepStatus) =>
         setAgentRun({
           kind,
-          steps: labels.map((label, i) => ({
-            id: `${kind}-${i}`,
-            label,
-            status: (i < done ? "done" : i === done ? currentStatus : "pending") as StepStatus,
-          })),
+          steps: labels.map((label, i) => {
+            const status = (
+              i < done ? "done" : i === done ? currentStatus : "pending"
+            ) as StepStatus;
+            return {
+              id: `${kind}-${i}`,
+              label,
+              /* A finished row shows its tick, not the connector. */
+              icon: status === "done" ? undefined : stepIcon(label),
+              status,
+            };
+          }),
         });
 
       setSteps(0, "running");
@@ -520,7 +534,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
         if (waitsOnFetch) {
           const t0 = Date.now();
           answer = await request;
-          const min = labels[i].toLowerCase().includes("fetch") ? 1700 : 1100;
+          const min = /fetch|scrap|identif/.test(labels[i].toLowerCase()) ? 1700 : 1100;
           const left = min - (Date.now() - t0);
           if (left > 0) await sleep(left);
           if (answer === null) {

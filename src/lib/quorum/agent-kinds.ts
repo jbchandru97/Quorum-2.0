@@ -56,7 +56,7 @@ export const AGENT_STEP_LABELS: Record<AgentKind, string[]> = {
   playbook: ["Checking design review guidance", "Composing answer"],
   precedent: ["Checking precedent metrics", "Composing answer"],
   delay: ["Searching the codebase", "Checking product context", "Composing answer"],
-  external: ["Checking product context", "Fetching external reference", "Composing answer"],
+  external: ["Identifying comparable products", "Scraping the top pages", "Composing answer"],
   unknown: ["Searching the codebase", "Checking design review guidance", "Composing answer"],
   actions: ["Reading thread discussion", "Synthesizing actions"],
 };

@@ -35,7 +35,24 @@ function getClient(): ContextDev {
   return client;
 }
 
-export async function searchExternalEvidence(query: string): Promise<ExternalEvidenceResult> {
+/** Scrape one page to Markdown — the second hop of the external
+    pipeline. Serves cached results when Context.dev has them. */
+export async function scrapePageMarkdown(url: string): Promise<string> {
+  try {
+    const res = await getClient().web.webScrapeMd({ url, timeoutMS: 25_000 });
+    return res.markdown ?? "";
+  } catch (error) {
+    if (error instanceof APIError) {
+      throw new ContextDevIntegrationError("Context.dev scrape failed", error.status);
+    }
+    throw new ContextDevIntegrationError("Context.dev scrape failed");
+  }
+}
+
+export async function searchExternalEvidence(
+  query: string,
+  opts: { excludeDomains?: string[] } = {},
+): Promise<ExternalEvidenceResult> {
   const normalizedQuery = query.trim();
   if (!normalizedQuery || normalizedQuery.length > 500) {
     throw new ContextDevIntegrationError("Query must contain between 1 and 500 characters", 400);
@@ -45,6 +62,7 @@ export async function searchExternalEvidence(query: string): Promise<ExternalEvi
     const response = await getClient().web.search({
       query: normalizedQuery,
       numResults: 10,
+      excludeDomains: opts.excludeDomains,
       tags: ["quorum", "external-evidence"],
       timeoutMS: 30_000,
     });

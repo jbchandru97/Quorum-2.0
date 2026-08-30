@@ -637,6 +637,11 @@ html[data-quorum-inspect] .q-wizard-chip * { cursor: default !important; }
   flex: 0 0 auto;
 }
 
+/* ── connector brand marks ───────────────────────────────────── */
+
+.q-brand-chip img { display: block; flex: 0 0 auto; }
+.q-step-mark img { display: block; width: 12px; height: 12px; }
+
 /* ── repo file chips ─────────────────────────────────────────── */
 
 .q-file-chip svg {

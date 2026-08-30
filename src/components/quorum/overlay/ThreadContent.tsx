@@ -11,7 +11,7 @@ import {
 import { timeAgo } from "@/lib/quorum/relative-time";
 import { DEMO_USERS } from "@/lib/quorum/demo-script";
 import { QuorumMark } from "../QuorumMark";
-import { IconFile, IconMessage, IconResolve } from "./icons";
+import { brandFor, IconFile, IconMessage, IconResolve } from "./icons";
 import { useReviewSession } from "./ReviewSession";
 
 /* ───────────────────────────────────────────────────────────────
@@ -118,15 +118,24 @@ function MessageRow({
         {(otherSources.length > 0 || repoFiles.length > 0) && (
           <div className="q-msg-sources">
             <SourceChips>
-              {otherSources.map((s) => (
-                <SourceChip
-                  key={s.label + (s.url ?? "")}
-                  label={s.label}
-                  provenance={s.provenance}
-                  href={s.url}
-                  detail={s.detail}
-                />
-              ))}
+              {otherSources.map((s) => {
+                const brand = brandFor(s.label);
+                return brand ? (
+                  <span key={s.label + (s.url ?? "")} className="q-chip q-brand-chip">
+                    {brand}
+                    <span className="q-chip-label">{s.label}</span>
+                    {s.detail && <span className="q-chip-detail">{s.detail}</span>}
+                  </span>
+                ) : (
+                  <SourceChip
+                    key={s.label + (s.url ?? "")}
+                    label={s.label}
+                    provenance={s.provenance}
+                    href={s.url}
+                    detail={s.detail}
+                  />
+                );
+              })}
               {shownFiles.map((f) => (
                 <span key={f.label + (f.detail ?? "")} className="q-chip q-file-chip">
                   <IconFile />

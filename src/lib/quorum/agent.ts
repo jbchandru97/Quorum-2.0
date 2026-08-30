@@ -5,9 +5,9 @@ import {
   findTarget,
   readMarkdownFixture,
 } from "./fixtures";
-import { searchExternalEvidence } from "./context-dev";
+import { scrapePageMarkdown, searchExternalEvidence } from "./context-dev";
 import { EXTERNAL_QUERY } from "./demo-script";
-import { searchRepo, SOURCE_ROOTS, type RepoHit } from "./repo-search";
+import { keywordsOf, searchRepo, SOURCE_ROOTS, type RepoHit } from "./repo-search";
 import { PRIMARY_TARGET_KEY } from "./targets";
 import type { AgentTarget } from "./agent-kinds";
 
@@ -184,33 +184,114 @@ async function delay(targetKey?: string | null, question?: string): Promise<Agen
   };
 }
 
+/** The most question-relevant prose lines from a scraped page.
+    Prose only: markup remnants and link-noise never make the cut. */
+function bestLines(markdown: string, question: string, max = 2): string[] {
+  /* Prefix-stemmed keywords, so "finance" meets "financial" and
+     "assistant" meets "assistants". */
+  const words = keywordsOf(question).map((w) => (w.length > 6 ? w.slice(0, 6) : w));
+  const scored = markdown
+    .split("\n")
+    .map((raw) => {
+      if (/[<>{}]|content=|og:|oembed|\bhttps?:\/\/\S+\s+https?:/i.test(raw)) return null;
+      const line = raw
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1") /* strip md links   */
+        .replace(/https?:\/\/\S+/g, "")
+        .replace(/[#*_`>|]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (line.length < 50 || line.length > 300) return null;
+      /* Natural prose, not tag soup or nav debris. */
+      const letters = (line.match(/[a-zA-Z\s]/g) ?? []).length / line.length;
+      if (letters < 0.82 || line.split(" ").length < 8) return null;
+      let score = 0;
+      const lower = line.toLowerCase();
+      for (const w of words) if (lower.includes(w)) score++;
+      return score >= 2 ? { line, score } : null;
+    })
+    .filter((x): x is { line: string; score: number } => x !== null)
+    .sort((a, b) => b.score - a.score);
+  return scored.slice(0, max).map((s) => s.line.slice(0, 220));
+}
+
+/* Pages that scrape into meta-tag soup rather than prose. */
+const SOCIAL_DOMAINS = [
+  "facebook.com",
+  "x.com",
+  "twitter.com",
+  "youtube.com",
+  "instagram.com",
+  "linkedin.com",
+  "reddit.com",
+  "pinterest.com",
+  "tiktok.com",
+];
+
+/** Phase 0 — determine what to look up. The question becomes a
+    search lookup: its content words, aimed at article-like pages. */
+function deriveLookup(question: string): string {
+  const words = keywordsOf(question);
+  if (words.length < 3) return question;
+  return `${words.join(" ")} examples`.slice(0, 500);
+}
+
+/* The live pipeline — two real Context.dev hops, never a canned
+   answer. Phase 1 determines what to look up (the comparable
+   products/pages for this question); phase 2 scrapes the top pages
+   and reads them for the lines that actually address it. */
 async function external(question?: string): Promise<AgentAnswer> {
-  /* The live source. The reviewer's own question is the search —
-     it never falls back to a canned answer; on failure the route
-     errors and the thread shows it honestly. */
   const query = question?.trim().slice(0, 500) || EXTERNAL_QUERY;
-  const result = await searchExternalEvidence(query);
-  const top = result.sources
-    .filter((s) => s.relevance !== "low")
-    .slice(0, 3);
-  if (top.length === 0) {
+  const lookup = deriveLookup(query);
+
+  /* Phase 1 — identify what to look at. */
+  const found = await searchExternalEvidence(lookup, { excludeDomains: SOCIAL_DOMAINS });
+  const candidates = found.sources.filter((s) => s.relevance !== "low").slice(0, 4);
+  if (candidates.length === 0) {
     return {
       content:
         "The external search returned no relevant references, so I don't have outside evidence for this one.",
       sources: [],
     };
   }
-  const bullets = top
-    .map((s) => `${s.title} — ${s.snippet.replace(/\s+/g, " ").slice(0, 140).trim()}`)
-    .join("\n");
+  const identified = [...new Set(candidates.map((c) => hostnameOf(c.url)))];
+
+  /* Phase 2 — scrape and read the top pages. */
+  const trail: string[] = [
+    `Lookup derived from the question: “${lookup}”`,
+    `Identified via web search: ${identified.join(", ")}`,
+  ];
+  const readings: { url: string; host: string; line: string }[] = [];
+  for (const c of candidates.slice(0, 2)) {
+    try {
+      const markdown = await scrapePageMarkdown(c.url);
+      trail.push(`Scraped ${c.url} (${markdown.length.toLocaleString()} chars)`);
+      const lines = bestLines(markdown, query);
+      if (lines[0]) readings.push({ url: c.url, host: hostnameOf(c.url), line: lines[0] });
+      if (lines[1]) trail.push(`${hostnameOf(c.url)}: “${lines[1]}”`);
+    } catch {
+      trail.push(`Could not scrape ${c.url} — skipped`);
+    }
+  }
+
+  /* Compose from what was actually read; fall back to search
+     snippets (still real) only if every scrape came back empty. */
+  const bullets =
+    readings.length > 0
+      ? readings.map((r) => `${r.host} — “${r.line}”`).join("\n")
+      : candidates
+          .slice(0, 3)
+          .map((s) => `${s.title} — ${s.snippet.replace(/\s+/g, " ").slice(0, 140).trim()}`)
+          .join("\n");
+
   return {
-    content: `Public references for “${query}”:\n${bullets}`,
-    sources: top.map((s) => ({
-      label: hostnameOf(s.url),
+    content: `Looked at comparable products (${identified.slice(0, 3).join(", ")}) and read the top pages:\n${bullets}`,
+    sources: (readings.length > 0 ? readings : candidates.slice(0, 3)).map((r) => ({
+      label: "host" in r ? r.host : hostnameOf(r.url),
       provenance: "fetched" as const,
-      url: s.url,
-      detail: "Context.dev",
+      url: r.url,
+      detail: readings.length > 0 ? "scraped · Context.dev" : "Context.dev",
     })),
+    findings: { title: "Lookup trail", items: trail },
   };
 }
 
