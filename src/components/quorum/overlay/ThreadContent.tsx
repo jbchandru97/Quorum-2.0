@@ -2,15 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Doc } from "../../../../convex/_generated/dataModel";
-import {
-  AgentSteps,
-  Avatar,
-  SourceChip,
-  SourceChips,
-} from "@/components/quorum/primitives";
+import { AgentSteps, Avatar } from "@/components/quorum/primitives";
 import { timeAgo } from "@/lib/quorum/relative-time";
 import { DEMO_USERS } from "@/lib/quorum/demo-script";
-import { brandFor, IconFile, IconMessage, IconResolve, QuorumLogo } from "./icons";
+import { BrandContextDev, brandFor, IconFile, IconMessage, IconResolve, QuorumLogo } from "./icons";
 import { useReviewSession } from "./ReviewSession";
 
 /* ───────────────────────────────────────────────────────────────
@@ -45,6 +40,142 @@ function withMentions(text: string): React.ReactNode[] {
   );
 }
 
+/* ── the support dropdown ────────────────────────────────────────
+   Everything behind an answer — the lookup trail, codebase matches,
+   and every referenced source — folds into one collapsible bar. The
+   bar summarizes what happened and previews the source marks; the
+   body structures it with headings at the response's own type size. */
+
+type MsgSource = NonNullable<Doc<"messages">["sources"]>[number];
+
+const REPO_ITEM = /^([\w./-]+\.(?:tsx?|css|md|json)):(\d+) — (.*)$/;
+const SCRAPE_ITEM = /^Scraped (\S+)(.*)$/;
+
+function sourceIcon(s: MsgSource): React.ReactNode {
+  return (
+    brandFor(s) ??
+    (s.detail?.startsWith("repo") ? (
+      <IconFile />
+    ) : (
+      <span className="q-prov" data-kind={s.provenance} aria-hidden="true" />
+    ))
+  );
+}
+
+function SupportDropdown({ msg }: { msg: Doc<"messages"> }) {
+  const sources = msg.sources ?? [];
+  const findings = msg.findings;
+  if (sources.length === 0 && (!findings || findings.items.length === 0)) return null;
+
+  const repoFiles = sources.filter((s) => s.detail?.startsWith("repo"));
+  const external = sources.some((s) => /context\.dev/i.test(s.detail ?? ""));
+
+  const label = external
+    ? `Looked up ${sources.length || "multiple"} source${sources.length === 1 ? "" : "s"} on the web`
+    : repoFiles.length > 0
+      ? `Searched the codebase · ${repoFiles.length} file${repoFiles.length === 1 ? "" : "s"}`
+      : sources.length > 0
+        ? `Referenced ${sources.length} source${sources.length === 1 ? "" : "s"}`
+        : (findings?.title ?? "Steps");
+
+  /* One mark per distinct source kind, previewed on the bar. */
+  const iconKeys = new Set<string>();
+  const icons: React.ReactNode[] = [];
+  for (const s of sources) {
+    const key = /context\.dev/i.test(s.detail ?? "")
+      ? "ctx"
+      : /playbook/i.test(s.label)
+        ? "atl"
+        : /precedent|analytics/i.test(s.label)
+          ? "amp"
+          : s.detail?.startsWith("repo")
+            ? "file"
+            : `prov-${s.provenance}`;
+    if (iconKeys.has(key) || icons.length >= 4) continue;
+    iconKeys.add(key);
+    icons.push(<span key={key}>{sourceIcon(s)}</span>);
+  }
+
+  return (
+    <details className="q-support">
+      <summary>
+        <span className="q-support-chev" aria-hidden="true" />
+        <span className="q-support-label">{label}</span>
+        <span className="q-support-icons">{icons}</span>
+      </summary>
+      <div className="q-support-body">
+        {findings && findings.items.length > 0 && (
+          <section>
+            <h4>{findings.title}</h4>
+            {findings.items.map((item, i) => {
+              const repo = item.match(REPO_ITEM);
+              if (repo) {
+                return (
+                  <div key={i} className="q-support-row">
+                    <span className="q-support-ico"><IconFile /></span>
+                    <div>
+                      <b>{repo[1].split("/").pop()}</b>
+                      <span className="q-support-dim"> · line {repo[2]}</span>
+                      <p>{repo[3]}</p>
+                    </div>
+                  </div>
+                );
+              }
+              const scrape = item.match(SCRAPE_ITEM);
+              if (scrape) {
+                return (
+                  <div key={i} className="q-support-row">
+                    <span className="q-support-ico"><BrandContextDev /></span>
+                    <div>
+                      <b>{scrape[1].replace(/^https?:\/\//, "").split("/")[0]}</b>
+                      <p>Scraped {scrape[1]}{scrape[2]}</p>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <p key={i} className="q-support-line">{item}</p>
+              );
+            })}
+          </section>
+        )}
+        {sources.length > 0 && (
+          <section>
+            <h4>Sources</h4>
+            {sources.map((s) => {
+              const inner = (
+                <>
+                  <span className="q-support-ico">{sourceIcon(s)}</span>
+                  <div>
+                    <b>{s.label}</b>
+                    {s.detail && <span className="q-support-dim"> · {s.detail}</span>}
+                    {s.url && <p>{s.url}</p>}
+                  </div>
+                </>
+              );
+              return s.url ? (
+                <a
+                  key={s.label + (s.url ?? "")}
+                  className="q-support-row is-link"
+                  href={s.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {inner}
+                </a>
+              ) : (
+                <div key={s.label + (s.detail ?? "")} className="q-support-row">
+                  {inner}
+                </div>
+              );
+            })}
+          </section>
+        )}
+      </div>
+    </details>
+  );
+}
+
 const STATUS_TAG: Record<string, { label: string; cls: string }> = {
   pass: { label: "Pass", cls: "is-pass" },
   needs_review: { label: "Needs review", cls: "is-review" },
@@ -69,13 +200,6 @@ function MessageRow({
   const isAgent = msg.authorType === "agent";
   const name = isAgent ? "Quorum" : (author?.name ?? "Teammate");
   const role = isAgent ? "Agent" : author ? ROLE_LABEL[author.role] : "";
-
-  /* Repo references fold into one file chip + a "+N files" expander;
-     other provenance chips render as themselves. */
-  const [showAllFiles, setShowAllFiles] = useState(false);
-  const repoFiles = (msg.sources ?? []).filter((s) => s.detail?.startsWith("repo"));
-  const otherSources = (msg.sources ?? []).filter((s) => !s.detail?.startsWith("repo"));
-  const shownFiles = showAllFiles ? repoFiles : repoFiles.slice(0, 1);
 
   /* A system line: no avatar, no chrome — the record itself. */
   if (msg.authorType === "system") {
@@ -153,78 +277,7 @@ function MessageRow({
             View action items
           </button>
         )}
-        {msg.findings && msg.findings.items.length > 0 && (
-          <details className="q-findings">
-            <summary>
-              {msg.findings.title} · {msg.findings.items.length}
-            </summary>
-            <ul>
-              {msg.findings.items.map((item, i) => (
-                <li key={i}>{item}</li>
-              ))}
-            </ul>
-          </details>
-        )}
-        {(otherSources.length > 0 || repoFiles.length > 0) && (
-          <div className="q-msg-sources">
-            <SourceChips>
-              {otherSources.map((s) => {
-                const brand = brandFor(s);
-                const chip = (
-                  <span key={s.label + (s.url ?? "")} className="q-chip q-brand-chip">
-                    {brand}
-                    <span className="q-chip-label">{s.label}</span>
-                    {s.detail && <span className="q-chip-detail">{s.detail}</span>}
-                  </span>
-                );
-                return brand ? (
-                  s.url ? (
-                    <a
-                      key={s.label + (s.url ?? "")}
-                      className="q-chip q-brand-chip"
-                      href={s.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      title={s.label}
-                    >
-                      {brand}
-                      <span className="q-chip-label">{s.label}</span>
-                      {s.detail && <span className="q-chip-detail">{s.detail}</span>}
-                    </a>
-                  ) : (
-                    chip
-                  )
-                ) : (
-                  <SourceChip
-                    key={s.label + (s.url ?? "")}
-                    label={s.label}
-                    provenance={s.provenance}
-                    href={s.url}
-                    detail={s.detail}
-                  />
-                );
-              })}
-              {shownFiles.map((f) => (
-                <span key={f.label + (f.detail ?? "")} className="q-chip q-file-chip">
-                  <IconFile />
-                  <span className="q-chip-label">{f.label}</span>
-                  <span className="q-chip-detail">
-                    {f.detail?.replace(/^repo\s*·\s*/, "")}
-                  </span>
-                </span>
-              ))}
-              {repoFiles.length > 1 && !showAllFiles && (
-                <button
-                  type="button"
-                  className="q-chip q-file-more"
-                  onClick={() => setShowAllFiles(true)}
-                >
-                  +{repoFiles.length - 1} file{repoFiles.length - 1 === 1 ? "" : "s"}
-                </button>
-              )}
-            </SourceChips>
-          </div>
-        )}
+        <SupportDropdown msg={msg} />
       </div>
       {onCapture && (
         <button
