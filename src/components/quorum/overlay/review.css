@@ -710,49 +710,70 @@ html[data-quorum-inspect] .q-wizard-chip * { cursor: default !important; }
 
 /* ── the Devin hand-off ──────────────────────────────────────── */
 
-.q-devin-status {
+.q-ext-head-actions { display: inline-flex; align-items: center; gap: 6px; }
+
+/* The workspace redirect in the tray header. */
+.q-ext-ws {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  padding: 4px 7px;
+  font: 400 10px/1 var(--q-mono);
+  letter-spacing: .04em;
+  color: var(--q-muted);
+  text-decoration: none;
+  transition: color var(--q-t-fast) var(--q-ease), background-color var(--q-t-fast) var(--q-ease);
 }
-.q-devin-status img { border-radius: 3px; }
-.q-devin-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--q-ok);
+.q-ext-ws:hover { color: var(--q-ink); background: var(--q-fill); }
+.q-ext-ws svg {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.q-ext-head-actions { display: inline-flex; align-items: center; gap: 2px; }
-.q-ext-pick.is-on { color: var(--q-ink); background: var(--q-fill); }
-
+/* The action row: select-all left, the explicit handover right. */
 .q-devin-bar {
   position: sticky;
   top: 30px;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 7px 11px;
+  padding: 8px 11px;
   background: var(--q-paper);
   border-bottom: 1px solid var(--q-rule);
-  animation: q-enter-up 240ms var(--q-ease-pop) both;
 }
 
 .q-devin-all {
-  font: 400 10.5px/1 var(--q-mono);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 400 11.5px/1 var(--q-body);
   color: var(--q-muted);
   transition: color var(--q-t-fast) var(--q-ease);
 }
 .q-devin-all:hover { color: var(--q-ink); }
 
-.q-devin-send { font-size: 11px; padding: 6px 10px; }
+.q-devin-send {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  padding: 7px 11px;
+}
+.q-devin-send img { display: block; border-radius: 2px; }
 
 .q-check {
   flex: 0 0 auto;
   width: 14px;
   height: 14px;
-  margin-left: 11px;
+  display: grid;
+  place-items: center;
   border: 1px solid var(--q-line-strong);
   transition: background-color var(--q-t-fast) var(--q-ease), border-color var(--q-t-fast) var(--q-ease);
 }
@@ -760,6 +781,15 @@ html[data-quorum-inspect] .q-wizard-chip * { cursor: default !important; }
   background: var(--q-signal);
   border-color: var(--q-signal);
 }
+.q-check.is-on::before {
+  content: '';
+  width: 4px;
+  height: 7px;
+  border-right: 1.6px solid #fff;
+  border-bottom: 1.6px solid #fff;
+  transform: rotate(40deg) translateY(-1px);
+}
+.q-ext-row > .q-check { margin-left: 11px; }
 
 .q-devin-sent {
   display: inline-flex;
@@ -772,21 +802,8 @@ html[data-quorum-inspect] .q-wizard-chip * { cursor: default !important; }
   color: var(--q-ok);
   flex: 0 0 auto;
 }
-.q-devin-sent img { border-radius: 2px; }
-
-.q-ext-foot {
-  position: sticky;
-  bottom: 0;
-  display: block;
-  padding: 8px 11px;
-  background: var(--q-paper);
-  border-top: 1px solid var(--q-rule);
-  font: 400 10px/1.5 var(--q-mono);
-  color: var(--q-muted);
-  text-decoration: none;
-  transition: color var(--q-t-fast) var(--q-ease);
-}
-.q-ext-foot:hover { color: var(--q-ink); }
+/* The dark mark disappears on the dark chrome — render it white. */
+.q-devin-sent img { border-radius: 2px; filter: brightness(0) invert(1); opacity: .85; }
 
 /* ── repo file chips ─────────────────────────────────────────── */
 

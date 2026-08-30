@@ -49,6 +49,14 @@ export function IconPlus() {
   );
 }
 
+export function IconArrowOut() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M6.5 3.5H3.5v9h9v-3M9.5 2.5h4v4M13.5 2.5L7.5 8.5" />
+    </svg>
+  );
+}
+
 export function IconFile() {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true">

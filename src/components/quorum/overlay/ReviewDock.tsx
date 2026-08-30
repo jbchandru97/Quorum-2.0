@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { AvatarStack } from "@/components/quorum/primitives";
 import { timeAgo } from "@/lib/quorum/relative-time";
-import { BrandDevin, IconClose, IconPlus } from "./icons";
+import { BrandDevin, IconArrowOut, IconClose } from "./icons";
 import { useReviewSession } from "./ReviewSession";
 
 /* ───────────────────────────────────────────────────────────────
@@ -77,8 +77,7 @@ export function ReviewDock() {
 
   const [dock, setDock] = useState<DockSide>("bottom");
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
-  /* Devin hand-off: selection mode over the actions list. */
-  const [picking, setPicking] = useState(false);
+  /* Devin hand-off: row selection over the actions list. */
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [sent, setSent] = useState<Set<string>>(new Set());
   const dockRef = useRef<HTMLDivElement | null>(null);
@@ -185,44 +184,44 @@ export function ReviewDock() {
         </div>
       )}
       {s.surface === "actions" && (
-        <div className="q-dock-ext" role="region" aria-label="Actions">
+        <div className="q-dock-ext" role="region" aria-label="Action items">
           <div className="q-ext-head">
-            <span className="q-devin-status">
-              <BrandDevin size={13} />
-              Devin connected
-              <i className="q-devin-dot" aria-hidden="true" />
-            </span>
+            <span>action items · {s.actions.length}</span>
             <span className="q-ext-head-actions">
-              <button
-                type="button"
-                className={`q-ext-x q-ext-pick${picking ? " is-on" : ""}`}
-                onClick={() => {
-                  setPicking((v) => !v);
-                  setPicked(new Set());
-                }}
-                title={picking ? "Cancel selection" : "Select actions to hand off"}
-                aria-label={picking ? "Cancel selection" : "Select actions"}
-              >
-                {picking ? <IconClose /> : <IconPlus />}
-              </button>
+              <a className="q-ext-ws" href="/quorum/threads" title="Open the workspace">
+                workspace
+                <IconArrowOut />
+              </a>
               <button
                 type="button"
                 className="q-ext-x"
                 onClick={s.closeSurfaces}
-                aria-label="Close actions"
+                aria-label="Close action items"
               >
                 <IconClose />
               </button>
             </span>
           </div>
 
-          {picking && s.actions.length > 0 && (
+          {s.actions.length > 0 && (
             <div className="q-devin-bar">
               <button
                 type="button"
                 className="q-devin-all"
-                onClick={() => setPicked(new Set(s.actions.map((a) => a._id)))}
+                role="checkbox"
+                aria-checked={picked.size === s.actions.length}
+                onClick={() =>
+                  setPicked(
+                    picked.size === s.actions.length
+                      ? new Set()
+                      : new Set(s.actions.map((a) => a._id)),
+                  )
+                }
               >
+                <span
+                  className={`q-check${picked.size === s.actions.length ? " is-on" : ""}`}
+                  aria-hidden="true"
+                />
                 Select all
               </button>
               <button
@@ -232,10 +231,10 @@ export function ReviewDock() {
                 onClick={() => {
                   setSent((cur) => new Set([...cur, ...picked]));
                   setPicked(new Set());
-                  setPicking(false);
                 }}
               >
-                Send to Devin{picked.size > 0 ? ` (${picked.size})` : ""}
+                <BrandDevin size={12} />
+                Handover to Devin{picked.size > 0 ? ` (${picked.size})` : ""}
               </button>
             </div>
           )}
@@ -247,27 +246,25 @@ export function ReviewDock() {
           ) : (
             s.actions.map((a) => (
               <div key={a._id} className="q-ext-row is-split">
-                {picking && (
-                  <button
-                    type="button"
-                    role="checkbox"
-                    aria-checked={picked.has(a._id)}
-                    className={`q-check${picked.has(a._id) ? " is-on" : ""}`}
-                    onClick={() =>
-                      setPicked((cur) => {
-                        const next = new Set(cur);
-                        if (next.has(a._id)) next.delete(a._id);
-                        else next.add(a._id);
-                        return next;
-                      })
-                    }
-                    aria-label={`Select ${a.title}`}
-                  />
-                )}
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={picked.has(a._id)}
+                  className={`q-check${picked.has(a._id) ? " is-on" : ""}`}
+                  onClick={() =>
+                    setPicked((cur) => {
+                      const next = new Set(cur);
+                      if (next.has(a._id)) next.delete(a._id);
+                      else next.add(a._id);
+                      return next;
+                    })
+                  }
+                  aria-label={`Select ${a.title}`}
+                />
                 <button
                   type="button"
                   className="q-ext-row-main"
-                  onClick={() => (picking ? undefined : s.openThread(a.threadId))}
+                  onClick={() => s.openThread(a.threadId)}
                   title={a.summary}
                 >
                   <span className="q-ext-row-t">{a.title}</span>
@@ -291,10 +288,6 @@ export function ReviewDock() {
               </div>
             ))
           )}
-
-          <a className="q-ext-foot" href="/quorum/threads">
-            Threads and actions persist in the workspace → /quorum/threads
-          </a>
         </div>
       )}
 
