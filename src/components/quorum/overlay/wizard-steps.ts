@@ -76,20 +76,14 @@ export const WIZARD_STEPS: WizardStep[] = [
   },
   {
     id: "unknown",
-    label: "agent admits · tag PM",
+    label: "agent admits · PM replies",
     run: async ({ session }) => {
       await session.typeAndSendAsDesigner(SCRIPT.q4Delay);
       await sleep(600);
-      /* Tagging Rohan hands the thread to a human — no agent. */
+      /* Tagging Rohan hands the thread to a human — the simulated
+         teammate replies through the same Convex path, in realtime. */
       await session.typeAndSendAsDesigner(SCRIPT.tagPm);
-    },
-  },
-  {
-    id: "pm-reply",
-    label: "PM replies (realtime)",
-    run: async ({ session }) => {
-      await sleep(900);
-      await session.sendAs(DEMO_USERS.pm, SCRIPT.pmDelayReply);
+      await sleep(2200);
     },
   },
   {
@@ -103,12 +97,11 @@ export const WIZARD_STEPS: WizardStep[] = [
     id: "scope",
     label: "scope discussion",
     run: async ({ session }) => {
+      /* The proposal tags Rohan; the simulated PM asks Arun, whose
+         tagged reply chains the scope answer — one send plays the
+         whole handoff. The wizard adds only the closing exchange. */
       await session.typeAndSendAsDesigner(SCRIPT.proposal);
-      await sleep(700);
-      await session.sendAs(DEMO_USERS.pm, SCRIPT.pmAsksEngineer);
-      await sleep(1100);
-      await session.sendAs(DEMO_USERS.engineer, SCRIPT.engineerScope);
-      await sleep(1100);
+      await sleep(4400);
       await session.sendAs(DEMO_USERS.pm, SCRIPT.pmTimeline);
       await sleep(900);
       await session.sendAs(DEMO_USERS.engineer, SCRIPT.engineerPlan);

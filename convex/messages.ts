@@ -57,6 +57,12 @@ export const create = mutation({
         items: v.array(v.string()),
       }),
     ),
+    suggestion: v.optional(
+      v.object({
+        name: v.string(),
+        question: v.string(),
+      }),
+    ),
   },
   handler: async ({ db }, args) => {
     const thread = await db.get(args.threadId);

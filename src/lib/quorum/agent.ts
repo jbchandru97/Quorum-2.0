@@ -94,9 +94,10 @@ async function rationale(targetKey?: string | null, question?: string): Promise<
   if (!documentsTarget(targetKey)) {
     return {
       content:
-        "I'm not sure — there is no written rationale on file for this target. @Rohan may hold the intent; you may want to tag him.",
+        "I'm not sure — there is no written rationale on file for this target. @Rohan may hold the intent.",
       sources: repoSources(hits),
       findings: asFindings(hits),
+      suggestion: question ? { name: "Rohan", question } : undefined,
     };
   }
   const doc = await readMarkdownFixture("productRationale");
@@ -170,8 +171,8 @@ async function delay(targetKey?: string | null, question?: string): Promise<Agen
   const notesDelay = doc?.includes("delay") ?? false;
   return {
     content: notesDelay
-      ? "The delay is real — the code sets it deliberately — but the product rationale explicitly notes there is no written reason for it. I can't answer the why from documentation. @Rohan built v1 and may hold the rationale; you may want to tag him."
-      : "The delay is present in the implementation, but I found no documented rationale for it. You may want to tag the PM.",
+      ? "The delay is real — the code sets it deliberately — but the product rationale explicitly notes there is no written reason for it. I can't answer the why from documentation. @Rohan built v1 and may hold the rationale."
+      : "The delay is present in the implementation, but I found no documented rationale for it. @Rohan may know.",
     sources: [
       ...(notesDelay
         ? [{ label: "Product rationale", provenance: "cited" as const, detail: "marked undocumented" }]
@@ -179,6 +180,7 @@ async function delay(targetKey?: string | null, question?: string): Promise<Agen
       ...repoSources(hits),
     ],
     findings: asFindings(hits),
+    suggestion: { name: "Rohan", question: question ?? "Why does the nudge appear after a delay?" },
   };
 }
 
@@ -233,26 +235,29 @@ async function unknown(question?: string, target?: AgentTarget): Promise<AgentAn
 
   if (isComponentQuestion(question)) {
     return {
-      content: `I'm not sure — I couldn't match ${what} to a named component in the codebase, so I can't say it is one, and I can't rule it out either. @Arun would know for certain; you may want to tag him.`,
+      content: `I'm not sure — I couldn't match ${what} to a named component in the codebase, so I can't say it is one, and I can't rule it out either. @Arun would know for certain.`,
       sources: repoSources(hits),
       findings: asFindings(hits),
+      suggestion: question ? { name: "Arun", question } : undefined,
     };
   }
 
   if (hits.length === 0) {
     return {
       content:
-        "I don't know — nothing in the codebase or the docs matches this, and it doesn't read as a public-web question. @Rohan or @Arun may have the context; you may want to tag them.",
+        "I don't know — nothing in the codebase or the docs matches this, and it doesn't read as a public-web question. @Rohan may have the context.",
       sources: [],
+      suggestion: question ? { name: "Rohan", question } : undefined,
     };
   }
 
   return {
     content: isYesNoQuestion(question)
-      ? "I'm not sure — the code I found is related but doesn't settle it either way. @Arun may know for certain; you may want to tag him."
-      : "I couldn't find a definitive answer. The closest matches in the codebase are below — @Rohan or @Arun may be able to confirm.",
+      ? "I'm not sure — the code I found is related but doesn't settle it either way. @Arun may know for certain."
+      : "I couldn't find a definitive answer. The closest matches in the codebase are below — @Arun may be able to confirm.",
     sources: repoSources(hits),
     findings: asFindings(hits),
+    suggestion: question ? { name: "Arun", question } : undefined,
   };
 }
 

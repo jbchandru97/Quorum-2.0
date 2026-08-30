@@ -20,7 +20,7 @@ import {
   type AgentAnswer,
   type AgentKind,
 } from "@/lib/quorum/agent-kinds";
-import { DEMO_USERS } from "@/lib/quorum/demo-script";
+import { DEMO_USERS, simulatedReplyFor } from "@/lib/quorum/demo-script";
 import {
   PRIMARY_TARGET_KEY,
   selectorFor,
@@ -106,6 +106,7 @@ export type ReviewSessionValue = {
   submitComposer: () => Promise<void>;
   typeAndSendAsDesigner: (text: string) => Promise<void>;
   sendAs: (externalId: string, text: string) => Promise<void>;
+  askHuman: (suggestion: { name: string; question: string }) => Promise<void>;
   runAgent: (kind: AgentKind, question?: string) => Promise<boolean>;
   resolveActiveThread: () => Promise<void>;
   reopenActiveThread: () => Promise<void>;
@@ -354,6 +355,53 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     return { key: null };
   }, []);
 
+  /* ── simulated teammates ───────────────────────────────────────
+     A tagged human replies after a beat, written through the same
+     Convex path a second window would use. A simulated reply that
+     itself tags someone chains once more, so the scripted handoff
+     (designer → PM → engineer) plays out from a single tag. */
+  const simulateRef = useRef<
+    ((text: string, authorExternalId: string, depth?: number) => void) | null
+  >(null);
+  const simulateTaggedReplies = useCallback(
+    (text: string, authorExternalId: string, depth = 0) => {
+      if (depth > 2) return;
+      const mentions = Array.from(text.matchAll(/@(\w+)/g), (m) => m[1].toLowerCase());
+      const tagged = usersRef.current.find(
+        (u) =>
+          u.role !== "agent" &&
+          u.externalId !== authorExternalId &&
+          u.externalId !== DEMO_USERS.designer &&
+          mentions.some((m) => u.name.toLowerCase().startsWith(m)),
+      );
+      if (!tagged) return;
+
+      const target = targetInfoFor();
+      const reply = simulatedReplyFor(tagged.externalId, text, target);
+      const threadId = activeThreadIdRef.current;
+      window.setTimeout(() => {
+        void (async () => {
+          if (activeThreadIdRef.current !== threadId || !threadId) return;
+          await heartbeatAs(tagged.externalId);
+          await createMessage({
+            threadId,
+            authorType: "human",
+            authorUserId: tagged._id,
+            content: reply,
+            messageKind: reply.trim().endsWith("?") ? "question" : "reply",
+            sourceType: "human",
+          });
+          /* Chain through a ref: the callback cannot name itself. */
+          simulateRef.current?.(reply, tagged.externalId, depth + 1);
+        })();
+      }, 1400 + depth * 400);
+    },
+    [createMessage, heartbeatAs, targetInfoFor],
+  );
+  useEffect(() => {
+    simulateRef.current = simulateTaggedReplies;
+  }, [simulateTaggedReplies]);
+
   const sendAs = useCallback(
     async (externalId: string, text: string) => {
       const author = userByExternal(externalId);
@@ -375,9 +423,19 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
       });
       if (shouldAgentRespond(externalId, text)) {
         await runAgentRef.current?.(classifyQuestion(text), text);
+      } else {
+        simulateTaggedReplies(text, externalId);
       }
     },
-    [createMessage, ensureThread, userByExternal, shouldAgentRespond],
+    [createMessage, ensureThread, userByExternal, shouldAgentRespond, simulateTaggedReplies],
+  );
+
+  /* One tap on the agent's suggestion: the reviewer tags the named
+     teammate with the original question — same path as typing it. */
+  const askHuman = useCallback(
+    (suggestion: { name: string; question: string }) =>
+      sendAs(DEMO_USERS.designer, `@${suggestion.name} ${suggestion.question}`),
+    [sendAs],
   );
 
   const submitComposer = useCallback(async () => {
@@ -475,6 +533,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
           messageKind: kind === "actions" ? "summary" : "answer",
           sources: answer.sources,
           findings: answer.findings,
+          suggestion: answer.suggestion,
         });
       } else {
         await createMessage({
@@ -575,6 +634,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     submitComposer,
     typeAndSendAsDesigner,
     sendAs,
+    askHuman,
     runAgent,
     resolveActiveThread,
     reopenActiveThread,

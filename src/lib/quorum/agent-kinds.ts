@@ -37,6 +37,8 @@ export type AgentAnswer = {
   actions?: AgentActionPayload[];
   /** Supporting evidence, rendered collapsed under the answer. */
   findings?: { title: string; items: string[] };
+  /** When the agent recommends a human, a one-tap follow-through. */
+  suggestion?: { name: string; question: string };
 };
 
 /** What the reviewer actually has selected, sent with a question so

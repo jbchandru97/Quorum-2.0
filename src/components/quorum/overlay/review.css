@@ -338,6 +338,24 @@ html[data-quorum-inspect] .q-wizard-chip * { cursor: default !important; }
 
 .q-msg-sources { margin-top: 8px; }
 
+/* ── the one-tap follow-through ──────────────────────────────── */
+
+.q-ask-bar {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px 10px;
+  text-align: left;
+  font: 500 11.5px/1 var(--q-body);
+  color: var(--q-ink);
+  background: var(--q-fill);
+  border: 1px solid var(--q-rule);
+  transition: background-color var(--q-t-fast) var(--q-ease), border-color var(--q-t-fast) var(--q-ease);
+  animation: q-enter-up var(--q-t) var(--q-ease) both;
+}
+.q-ask-bar:hover { border-color: var(--q-line-strong); }
+.q-ask-bar::before { content: '→ '; color: var(--q-muted); }
+
 /* ── collapsible findings under an answer ────────────────────── */
 
 .q-findings {

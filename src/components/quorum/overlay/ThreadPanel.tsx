@@ -44,9 +44,11 @@ function withMentions(text: string): React.ReactNode[] {
 function MessageRow({
   msg,
   author,
+  onAsk,
 }: {
   msg: Doc<"messages">;
   author?: Doc<"users">;
+  onAsk?: (suggestion: { name: string; question: string }) => void;
 }) {
   const isAgent = msg.authorType === "agent";
   const name = isAgent ? "Quorum" : (author?.name ?? "Teammate");
@@ -102,6 +104,16 @@ function MessageRow({
               ))}
             </SourceChips>
           </div>
+        )}
+        {msg.suggestion && onAsk && (
+          <button
+            type="button"
+            className="q-ask-bar"
+            onClick={() => onAsk(msg.suggestion!)}
+            title={`Tags @${msg.suggestion.name} with the question — they reply in-thread`}
+          >
+            Ask {msg.suggestion.name}
+          </button>
         )}
       </div>
     </div>
@@ -214,6 +226,7 @@ export function ThreadPanel() {
               key={m._id}
               msg={m}
               author={m.authorUserId ? userById(m.authorUserId) : undefined}
+              onAsk={resolved || agentRun ? undefined : (sug) => void s.askHuman(sug)}
             />
           ))}
           {agentRun && (

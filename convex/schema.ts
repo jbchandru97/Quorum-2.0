@@ -127,6 +127,14 @@ export default defineSchema({
         items: v.array(v.string()),
       }),
     ),
+    /* One-tap follow-through when the agent recommends a human:
+       "Ask Arun" sends the tag + question without retyping. */
+    suggestion: v.optional(
+      v.object({
+        name: v.string(),
+        question: v.string(),
+      }),
+    ),
     createdAt: v.number(),
   }).index("by_thread", ["threadId"]),
 

@@ -49,3 +49,40 @@ export const SCRIPT = {
     the agent route, and the docs trail all reference the same query. */
 export const EXTERNAL_QUERY =
   "how do finance apps introduce AI assistant entry points in product UX";
+
+/* ── simulated teammates ─────────────────────────────────────────
+   Tagging a human gets a reply "from" them: the scripted lines for
+   the scripted beats, persona-plausible ones for everything else.
+   These are role-played demo participants (docs/09 allows the
+   simulated second participant), never the agent — so they may
+   speak with lived-context confidence the agent must not fake. */
+
+export function simulatedReplyFor(
+  externalId: string,
+  prompt: string,
+  target?: { key?: string | null; label?: string },
+): string {
+  const p = prompt.toLowerCase();
+  const label = target?.label && target.label !== "region" ? target.label : "this";
+
+  if (externalId === DEMO_USERS.pm) {
+    if (/(delay|immediat|wait|timing)/.test(p)) return SCRIPT.pmDelayReply;
+    if (/(copy|analy[sz]|propos|transparen)/.test(p)) return SCRIPT.pmAsksEngineer;
+    if (/(why|intent|reason|rationale|purpose|decide)/.test(p))
+      return `Nothing written down on that one — from what I remember of v1, ${label} landed this way because it read best in the first dashboard review. I can dig out my notes if we need the detail.`;
+    return "Good question — I don't have that documented. Give me a moment and I'll confirm here.";
+  }
+
+  if (externalId === DEMO_USERS.engineer) {
+    if (/(how large|how big|scope|effort|copy change)/.test(p)) return SCRIPT.engineerScope;
+    if (/component/.test(p))
+      return target?.key === "ai-insight-prompt"
+        ? "Checked — yes, that's the shared AIInsightPrompt base component. The dashboard, Monthly Insights, and the empty state all render it, so treat changes as shared-surface changes."
+        : "Checked the code — that block is inline page markup, not an extracted component, so a local change stays contained.";
+    if (/(implement|code|built|render|where|file)/.test(p))
+      return `It lives in the dashboard page tree — nothing about ${label} is shared elsewhere, so changes stay local to that surface.`;
+    return "Let me look at the implementation and confirm here — nothing about it reads as risky at first glance.";
+  }
+
+  return "Taking a look now.";
+}
