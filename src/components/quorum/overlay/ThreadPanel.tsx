@@ -2,7 +2,7 @@
 
 import { SidePanel } from "@/components/quorum/primitives";
 import { useReviewSession } from "./ReviewSession";
-import { ThreadBody, useThreadMeta } from "./ThreadContent";
+import { ResolveButton, ThreadBody, useThreadMeta } from "./ThreadContent";
 
 /* ───────────────────────────────────────────────────────────────
    ThreadPanel — the expanded frame.
@@ -14,7 +14,7 @@ import { ThreadBody, useThreadMeta } from "./ThreadContent";
 
 export function ThreadPanel() {
   const s = useReviewSession();
-  const { title, subtitle, hasSubject } = useThreadMeta();
+  const { title, hasSubject } = useThreadMeta();
 
   const open = s.panelOpen && hasSubject && s.threadView === "panel";
 
@@ -23,8 +23,12 @@ export function ThreadPanel() {
       open={open}
       onClose={s.closePanel}
       rail={false}
-      title={title}
-      subtitle={subtitle}
+      title={
+        <span className="q-panel-title-row">
+          {title}
+          <ResolveButton />
+        </span>
+      }
       width={404}
     >
       <ThreadBody />

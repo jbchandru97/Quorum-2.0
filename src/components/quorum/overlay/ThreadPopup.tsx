@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Rect } from "@/components/quorum/primitives";
 import { useReviewSession } from "./ReviewSession";
-import { ThreadBody, useThreadMeta } from "./ThreadContent";
+import { ResolveButton, ThreadBody, useThreadMeta } from "./ThreadContent";
 
 /* ───────────────────────────────────────────────────────────────
    ThreadPopup — the conversation, docked to its bubble.
@@ -30,7 +30,7 @@ function IconExpand() {
 export function ThreadPopup() {
   const s = useReviewSession();
   const { activeThread, selection, panelOpen, threadView } = s;
-  const { title, subtitle, hasSubject } = useThreadMeta();
+  const { title, hasSubject } = useThreadMeta();
 
   const open = panelOpen && hasSubject && threadView === "popup";
 
@@ -94,10 +94,8 @@ export function ThreadPopup() {
       data-side={fitsRight ? "right" : "left"}
     >
       <header className="q-thread-pop-head">
-        <div className="q-thread-pop-t">
-          {title}
-          {subtitle && <span>{subtitle}</span>}
-        </div>
+        <div className="q-thread-pop-t">{title}</div>
+        <ResolveButton />
         <button
           type="button"
           className="q-pop-icon"

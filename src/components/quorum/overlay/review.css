@@ -230,6 +230,18 @@ html[data-quorum-review] .wizard-panel { display: none !important; }
   transition: background-color var(--q-t-fast) var(--q-ease);
 }
 .q-ext-row:hover { background: var(--q-fill); }
+
+/* A row with its own remove control. */
+.q-ext-row.is-split { padding: 0; gap: 0; }
+.q-ext-row-main {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 8px 4px 8px 11px;
+  font: 400 12.5px/1.35 var(--q-body);
+  color: var(--q-ink);
+}
+.q-ext-row.is-split .q-ext-x { margin-right: 5px; flex: 0 0 auto; }
 .q-ext-row.is-on { color: var(--q-signal); }
 .q-ext-row.is-resolved .q-ext-row-t { color: var(--q-muted); }
 
@@ -444,6 +456,67 @@ html[data-quorum-inspect] .q-wizard-chip * { cursor: default !important; }
 /* Inside the popup the thread fills the remaining height directly —
    no panel padding to reclaim. */
 .q-thread-pop .q-thread { margin: 0; height: auto; flex: 1; min-height: 0; }
+
+/* ── message hover: capture as action ────────────────────────── */
+
+.q-msg { position: relative; }
+
+.q-msg-add {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  padding: 3px 7px;
+  font: 500 9.5px/1 var(--q-mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--q-muted);
+  background: var(--q-paper);
+  border: 1px solid var(--q-rule);
+  opacity: 0;
+  transition: opacity var(--q-t-fast) var(--q-ease), color var(--q-t-fast) var(--q-ease), border-color var(--q-t-fast) var(--q-ease);
+}
+.q-msg:hover .q-msg-add { opacity: 1; }
+.q-msg-add:hover { color: var(--q-ink); border-color: var(--q-line-strong); }
+
+/* ── resolve icon state ──────────────────────────────────────── */
+
+.q-resolve.is-ok { color: var(--q-ok); }
+.q-resolve.is-ok:hover { color: var(--q-ok); background: var(--q-ok-bg); }
+
+.q-panel-title-row { display: inline-flex; align-items: center; gap: 8px; }
+
+/* ── the @mention dropdown ───────────────────────────────────── */
+
+.q-composer-inputwrap { position: relative; }
+
+.q-mention-dd {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  min-width: 168px;
+  background: var(--q-paper);
+  border: 1px solid var(--q-line);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.30);
+  z-index: 2;
+  animation: q-enter-up var(--q-t-fast) var(--q-ease) both;
+}
+
+.q-mention-dd-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  font: 400 12px/1 var(--q-body);
+  color: var(--q-ink);
+}
+.q-mention-dd-row.is-on { background: var(--q-fill); }
+.q-mention-dd-row .q-mention-dd-k {
+  margin-left: auto;
+  font: 400 10px/1 var(--q-mono);
+  color: var(--q-muted);
+}
 
 /* ── the one-tap follow-through ──────────────────────────────── */
 

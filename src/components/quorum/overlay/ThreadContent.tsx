@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Doc } from "../../../../convex/_generated/dataModel";
 import {
   AgentSteps,
@@ -15,10 +15,11 @@ import { useReviewSession } from "./ReviewSession";
 /* ───────────────────────────────────────────────────────────────
    ThreadContent — one conversation, two frames.
 
-   Everything a thread shows — the mixed human/agent messages, the
-   live thinking steps, findings, ask bars, the composer, and the
-   two outcomes — lives here once, so the anchored popup and the
-   expanded side panel are the same conversation in different frames.
+   The chrome stays out of the way: the element name in the header,
+   the conversation, an input, Send. Tagging works the way design
+   tools do — typing @ opens a name list, arrows move, Tab or Enter
+   commits. A message becomes an action from its own hover control;
+   the whole thread becomes outputs only when it is resolved.
    ─────────────────────────────────────────────────────────────── */
 
 const ROLE_LABEL: Record<string, string> = {
@@ -27,6 +28,8 @@ const ROLE_LABEL: Record<string, string> = {
   engineer: "Engineer",
   agent: "Agent",
 };
+
+const MENTIONABLE = ["Quorum", "Rohan", "Arun"];
 
 /** @Mentions read in accent so tagging a human is visible. */
 function withMentions(text: string): React.ReactNode[] {
@@ -45,10 +48,12 @@ function MessageRow({
   msg,
   author,
   onAsk,
+  onCapture,
 }: {
   msg: Doc<"messages">;
   author?: Doc<"users">;
   onAsk?: (suggestion: { name: string; question: string }) => void;
+  onCapture?: (msg: Doc<"messages">, authorName: string) => void;
 }) {
   const isAgent = msg.authorType === "agent";
   const name = isAgent ? "Quorum" : (author?.name ?? "Teammate");
@@ -116,47 +121,66 @@ function MessageRow({
           </button>
         )}
       </div>
+      {onCapture && (
+        <button
+          type="button"
+          className="q-msg-add"
+          onClick={() => onCapture(msg, name)}
+          title="Capture this message as an action"
+        >
+          + Action
+        </button>
+      )}
     </div>
   );
 }
 
-/** Title, subtitle and status derived from the current subject. */
+/** Title and status derived from the current subject. Just the
+    element's name — the frame carries no other prose. */
 export function useThreadMeta() {
   const { activeThread, selection } = useReviewSession();
-
-  const breadcrumb =
-    activeThread?.anchorData.type === "element"
-      ? activeThread.anchorData.breadcrumb
-      : selection?.kind === "element"
-        ? selection.breadcrumb
-        : [];
 
   const title = activeThread
     ? activeThread.title
     : selection?.kind === "element"
-      ? `New thread · ${selection.label}`
+      ? selection.label
       : selection
-        ? "New thread · region"
-        : "No thread selected";
-
-  const subtitle =
-    breadcrumb.length > 0
-      ? breadcrumb.join(" / ")
-      : activeThread?.anchorData.type === "region" || selection?.kind === "region"
-        ? "region anchor"
-        : undefined;
+        ? "Region"
+        : "Thread";
 
   return {
     title,
-    subtitle,
     hasSubject: Boolean(activeThread || selection),
     resolved: activeThread?.status === "resolved",
   };
 }
 
+/** The resolve control — an icon in the frame header. Resolving
+    turns the discussion into outputs: the agent summarizes and
+    suggests actions, which remain removable. */
+export function ResolveButton() {
+  const s = useReviewSession();
+  if (!s.activeThread) return null;
+  const resolved = s.activeThread.status === "resolved";
+  return (
+    <button
+      type="button"
+      className={`q-pop-icon q-resolve${resolved ? " is-ok" : ""}`}
+      disabled={Boolean(s.agentRun)}
+      onClick={() => void (resolved ? s.reopenActiveThread() : s.resolveActiveThread())}
+      title={resolved ? "Resolved — click to reopen" : "Resolve — summarize and suggest actions"}
+      aria-label={resolved ? "Reopen thread" : "Resolve thread"}
+    >
+      <svg viewBox="0 0 14 14" aria-hidden="true">
+        <path d="M3 7.4l2.6 2.6L11 4.6" />
+      </svg>
+    </button>
+  );
+}
+
 export function ThreadBody() {
   const s = useReviewSession();
-  const { activeThread, selection, messages, agentRun, composerText, userById } = s;
+  const { activeThread, messages, agentRun, composerText, userById } = s;
   const resolved = activeThread?.status === "resolved";
 
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -172,7 +196,49 @@ export function ThreadBody() {
       ? (last.content.match(/@(Rohan|Arun|Maya)\b/i)?.[1] ?? null)
       : null;
 
+  /* ── the @mention dropdown ───────────────────────────────────── */
+  const mentionMatch = composerText.match(/(?:^|\s)@(\w*)$/);
+  const query = mentionMatch?.[1] ?? null;
+  const [ddDismissed, setDdDismissed] = useState(false);
+  const [ddIdx, setDdIdx] = useState(0);
+  const options =
+    query !== null && !ddDismissed
+      ? MENTIONABLE.filter((n) => n.toLowerCase().startsWith(query.toLowerCase()))
+      : [];
+
+  const pick = (name: string) => {
+    s.setComposerText(composerText.slice(0, composerText.length - (query?.length ?? 0)) + name + " ");
+    setDdIdx(0);
+  };
+
+  const onComposerChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    s.setComposerText(e.target.value);
+    setDdDismissed(false);
+    setDdIdx(0);
+  };
+
   const onComposerKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (options.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setDdIdx((i) => (i + 1) % options.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setDdIdx((i) => (i - 1 + options.length) % options.length);
+        return;
+      }
+      if (e.key === "Tab" || e.key === "Enter") {
+        e.preventDefault();
+        pick(options[Math.min(ddIdx, options.length - 1)]);
+        return;
+      }
+      if (e.key === "Escape") {
+        setDdDismissed(true);
+        return;
+      }
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void s.submitComposer();
@@ -182,19 +248,15 @@ export function ThreadBody() {
   return (
     <div className="q-thread">
       <div ref={listRef} className="q-msgs">
-        {!activeThread && selection && (
-          <p className="q-thread-hint">
-            Start the thread: ask a question about this{" "}
-            {selection.kind === "element" ? "element" : "region"}. The team and the
-            agent answer here.
-          </p>
-        )}
         {messages.map((m) => (
           <MessageRow
             key={m._id}
             msg={m}
             author={m.authorUserId ? userById(m.authorUserId) : undefined}
             onAsk={resolved || agentRun ? undefined : (sug) => void s.askHuman(sug)}
+            onCapture={
+              resolved ? undefined : (msg, name) => void s.addMessageAsAction(msg, name)
+            }
           />
         ))}
         {agentRun && (
@@ -219,34 +281,43 @@ export function ThreadBody() {
       </div>
 
       <div className="q-composer">
-        <div className="q-composer-mentions">
-          {["Quorum", "Rohan", "Arun"].map((name) => (
-            <button
-              key={name}
-              type="button"
-              className="q-mention-btn"
-              onClick={() =>
-                s.setComposerText(
-                  composerText.endsWith(" ") || composerText === ""
-                    ? `${composerText}@${name} `
-                    : `${composerText} @${name} `,
-                )
-              }
-            >
-              @{name}
-            </button>
-          ))}
+        <div className="q-composer-inputwrap">
+          {options.length > 0 && (
+            <div className="q-mention-dd" role="listbox" aria-label="Tag a teammate">
+              {options.map((name, i) => (
+                <button
+                  key={name}
+                  type="button"
+                  role="option"
+                  aria-selected={i === ddIdx}
+                  className={`q-mention-dd-row${i === ddIdx ? " is-on" : ""}`}
+                  onMouseEnter={() => setDdIdx(i)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    pick(name);
+                  }}
+                >
+                  {name === "Quorum" ? (
+                    <QuorumMark size={16} />
+                  ) : (
+                    <Avatar person={{ id: name, name }} size={16} showPresence={false} />
+                  )}
+                  <span>{name}</span>
+                  <span className="q-mention-dd-k">{i === ddIdx ? "⇥" : ""}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <textarea
+            className="q-composer-input"
+            rows={2}
+            placeholder={activeThread ? "Reply — @ to tag" : "Ask about this…"}
+            value={composerText}
+            onChange={onComposerChange}
+            onKeyDown={onComposerKey}
+          />
         </div>
-        <textarea
-          className="q-composer-input"
-          rows={2}
-          placeholder={activeThread ? "Reply — @ to tag a teammate" : "Ask about this target…"}
-          value={composerText}
-          onChange={(e) => s.setComposerText(e.target.value)}
-          onKeyDown={onComposerKey}
-        />
         <div className="q-composer-row">
-          <span className="q-composer-as">as Maya · Designer</span>
           <button
             type="button"
             className="q-btn is-primary"
@@ -256,26 +327,6 @@ export function ThreadBody() {
             Send
           </button>
         </div>
-        {activeThread && (
-          <div className="q-thread-foot">
-            <button
-              type="button"
-              className={`q-btn${resolved ? " is-ok" : ""}`}
-              onClick={() => void (resolved ? s.reopenActiveThread() : s.resolveActiveThread())}
-            >
-              {resolved ? "Resolved ✓" : "Resolve"}
-            </button>
-            <button
-              type="button"
-              className="q-btn"
-              disabled={Boolean(agentRun)}
-              onClick={() => void s.addToActions()}
-              title="The agent synthesizes action items from this discussion"
-            >
-              Add to actions
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

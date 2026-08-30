@@ -112,10 +112,10 @@ export const WIZARD_STEPS: WizardStep[] = [
   },
   {
     id: "actions",
-    label: "actions + resolve",
+    label: "resolve · synthesize",
     run: async ({ session }) => {
-      await session.addToActions();
-      await sleep(800);
+      /* Resolving the scripted thread runs the agent synthesis:
+         summary + the two suggested actions, still removable. */
       await session.resolveActiveThread();
     },
   },

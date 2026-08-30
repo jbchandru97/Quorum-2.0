@@ -61,28 +61,53 @@ export function simulatedReplyFor(
   externalId: string,
   prompt: string,
   target?: { key?: string | null; label?: string },
+  /** What this person already said in the thread — never repeated. */
+  prior: string[] = [],
 ): string {
   const p = prompt.toLowerCase();
   const label = target?.label && target.label !== "region" ? target.label : "this";
 
+  /* Candidates in priority order; the first line not already said
+     wins, so a second question never gets a copy-pasted reply. */
+  const candidates: string[] = [];
+
   if (externalId === DEMO_USERS.pm) {
-    if (/(delay|immediat|wait|timing)/.test(p)) return SCRIPT.pmDelayReply;
-    if (/(copy|analy[sz]|propos|transparen)/.test(p)) return SCRIPT.pmAsksEngineer;
+    if (/(delay|immediat|wait|timing)/.test(p)) candidates.push(SCRIPT.pmDelayReply);
+    if (/(copy|analy[sz]|propos|transparen)/.test(p)) candidates.push(SCRIPT.pmAsksEngineer);
     if (/(why|intent|reason|rationale|purpose|decide)/.test(p))
-      return `Nothing written down on that one — from what I remember of v1, ${label} landed this way because it read best in the first dashboard review. I can dig out my notes if we need the detail.`;
-    return "Good question — I don't have that documented. Give me a moment and I'll confirm here.";
-  }
-
-  if (externalId === DEMO_USERS.engineer) {
-    if (/(how large|how big|scope|effort|copy change)/.test(p)) return SCRIPT.engineerScope;
+      candidates.push(
+        `Nothing written down on that one — from what I remember of v1, ${label} landed this way because it read best in the first dashboard review. I can dig out my notes if we need the detail.`,
+      );
+    candidates.push(
+      "Good question — I don't have that documented. Give me a moment and I'll confirm here.",
+      "No strong opinion beyond what I said earlier — I'd ship the scoped version and revisit.",
+      "I'll take that one away and come back with a proper answer.",
+    );
+  } else if (externalId === DEMO_USERS.engineer) {
+    if (/(creat|extract|make|pull|turn|convert).{0,24}component/.test(p))
+      candidates.push(
+        "We can extract it — right now it's inline markup, so pulling it into its own component is a small, contained change. I'd scope it to this surface first and generalise later if a second surface needs it.",
+      );
+    if (/(how large|how big|scope|effort|copy change)/.test(p))
+      candidates.push(SCRIPT.engineerScope);
     if (/component/.test(p))
-      return target?.key === "ai-insight-prompt"
-        ? "Checked — yes, that's the shared AIInsightPrompt base component. The dashboard, Monthly Insights, and the empty state all render it, so treat changes as shared-surface changes."
-        : "Checked the code — that block is inline page markup, not an extracted component, so a local change stays contained.";
+      candidates.push(
+        target?.key === "ai-insight-prompt"
+          ? "Checked — yes, that's the shared AIInsightPrompt base component. The dashboard, Monthly Insights, and the empty state all render it, so treat changes as shared-surface changes."
+          : "Checked the code — that block is inline page markup, not an extracted component, so a local change stays contained.",
+      );
     if (/(implement|code|built|render|where|file)/.test(p))
-      return `It lives in the dashboard page tree — nothing about ${label} is shared elsewhere, so changes stay local to that surface.`;
-    return "Let me look at the implementation and confirm here — nothing about it reads as risky at first glance.";
+      candidates.push(
+        `It lives in the dashboard page tree — nothing about ${label} is shared elsewhere, so changes stay local to that surface.`,
+      );
+    candidates.push(
+      "Let me look at the implementation and confirm here — nothing about it reads as risky at first glance.",
+      "Nothing new from the code side since my last look — happy to pair on it if we want to move.",
+      "I'd need to prototype that to say anything useful — noted.",
+    );
+  } else {
+    candidates.push("Taking a look now.");
   }
 
-  return "Taking a look now.";
+  return candidates.find((c) => !prior.includes(c)) ?? "Nothing more from me on this one.";
 }

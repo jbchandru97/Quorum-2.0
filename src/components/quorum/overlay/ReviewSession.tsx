@@ -116,6 +116,8 @@ export type ReviewSessionValue = {
   resolveActiveThread: () => Promise<void>;
   reopenActiveThread: () => Promise<void>;
   addToActions: () => Promise<boolean>;
+  addMessageAsAction: (msg: Doc<"messages">, authorName: string) => Promise<void>;
+  removeAction: (actionId: Id<"actions">) => Promise<void>;
   heartbeatAs: (externalId: string) => Promise<void>;
   resetDemoData: () => Promise<void>;
 };
@@ -184,6 +186,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
   const previewRef = useRef(preview);
   const usersRef = useRef(users);
   const threadsRef = useRef(threads);
+  const messagesRef = useRef(messages);
   const agentBusyRef = useRef(false);
   const runAgentRef = useRef<((kind: AgentKind, question?: string) => Promise<boolean>) | null>(
     null,
@@ -194,6 +197,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     previewRef.current = preview;
     usersRef.current = users;
     threadsRef.current = threads;
+    messagesRef.current = messages;
   });
 
   const userByExternal = useCallback(
@@ -389,7 +393,10 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
       if (!tagged) return;
 
       const target = targetInfoFor();
-      const reply = simulatedReplyFor(tagged.externalId, text, target);
+      const prior = messagesRef.current
+        .filter((m) => m.authorUserId === tagged._id)
+        .map((m) => m.content);
+      const reply = simulatedReplyFor(tagged.externalId, text, target, prior);
       const threadId = activeThreadIdRef.current;
       window.setTimeout(() => {
         void (async () => {
@@ -570,11 +577,33 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     runAgentRef.current = runAgent;
   }, [runAgent]);
 
+  /* Resolving is when the conversation becomes outputs: the scripted
+     thread gets the agent synthesis (summary + suggested actions the
+     humans can still remove); other threads get an honest closing
+     summary. Individual messages can be captured as actions at any
+     time before that. */
   const resolveActiveThread = useCallback(async () => {
     const threadId = activeThreadIdRef.current;
     if (!threadId) return;
+    const thread = threadsRef.current.find((t) => t._id === threadId);
+    if (thread?.status === "resolved") return;
+
+    const isPrimary = targetInfoFor().key === PRIMARY_TARGET_KEY;
+    if (isPrimary && messagesRef.current.length >= 3 && (thread?.actionCount ?? 0) === 0) {
+      await runAgentRef.current?.("actions");
+    } else {
+      const agentUser = userByExternal(DEMO_USERS.agent);
+      const count = thread?.actionCount ?? 0;
+      await createMessage({
+        threadId,
+        authorType: "agent",
+        authorUserId: agentUser?._id,
+        content: `Resolved — ${messagesRef.current.length} messages, ${count} action${count === 1 ? "" : "s"} captured. Anything still open can be added from a message.`,
+        messageKind: "summary",
+      });
+    }
     await setThreadStatus({ threadId, status: "resolved" });
-  }, [setThreadStatus]);
+  }, [setThreadStatus, targetInfoFor, userByExternal, createMessage]);
 
   const reopenActiveThread = useCallback(async () => {
     const threadId = activeThreadIdRef.current;
@@ -583,6 +612,36 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
   }, [setThreadStatus]);
 
   const addToActions = useCallback(() => runAgent("actions"), [runAgent]);
+
+  /* Capture one message as an action — the pre-resolve path. */
+  const addMessageAsAction = useCallback(
+    async (msg: Doc<"messages">, authorName: string) => {
+      const p = previewRef.current;
+      if (!p) return;
+      const target = targetInfoFor();
+      await createAction({
+        previewId: p._id,
+        threadId: msg.threadId,
+        title: msg.content.split("\n")[0].slice(0, 64),
+        summary: msg.content.slice(0, 500),
+        targetDescription:
+          target.breadcrumb && target.breadcrumb.length > 0
+            ? target.breadcrumb.join(" / ")
+            : (target.label ?? "Thread target"),
+        scopeNotes: `Captured from ${authorName}'s message in the thread.`,
+        acceptanceNotes: "Refine scope and acceptance before implementation.",
+      });
+    },
+    [createAction, targetInfoFor],
+  );
+
+  const removeActionMutation = useMutation(api.actions.remove);
+  const removeAction = useCallback(
+    async (actionId: Id<"actions">) => {
+      await removeActionMutation({ actionId });
+    },
+    [removeActionMutation],
+  );
 
   const resetDemoData = useCallback(async () => {
     await resetDemo({});
@@ -666,6 +725,8 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     resolveActiveThread,
     reopenActiveThread,
     addToActions,
+    addMessageAsAction,
+    removeAction,
     heartbeatAs,
     resetDemoData,
   };

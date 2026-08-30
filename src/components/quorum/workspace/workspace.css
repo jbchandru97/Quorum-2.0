@@ -380,6 +380,15 @@
 .q-ws-action-head b { font: 500 12.5px/1.3 var(--q-body); color: var(--q-ink); }
 .q-ws-action-head span { margin-left: auto; font: 400 9.5px/1 var(--q-mono); color: var(--q-muted); letter-spacing: .05em; text-transform: uppercase; }
 
+.q-ws-action-x {
+  flex: 0 0 auto;
+  font: 400 14px/1 var(--q-body);
+  color: var(--q-muted);
+  padding: 0 4px;
+  transition: color var(--q-t-fast) var(--q-ease);
+}
+.q-ws-action-x:hover { color: var(--q-ink); }
+
 .q-ws-action > p { font: 400 12px/1.5 var(--q-body); color: var(--q-muted); }
 
 .q-ws-action dl { margin: 10px 0 0; display: flex; flex-direction: column; gap: 5px; }

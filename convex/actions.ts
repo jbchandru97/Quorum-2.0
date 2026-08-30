@@ -7,6 +7,22 @@ export const listByPreview = query({
     db.query("actions").withIndex("by_preview", (q) => q.eq("previewId", previewId)).order("desc").collect(),
 });
 
+export const remove = mutation({
+  args: { actionId: v.id("actions") },
+  handler: async ({ db }, { actionId }) => {
+    const action = await db.get(actionId);
+    if (!action) return;
+    await db.delete(actionId);
+    const thread = await db.get(action.threadId);
+    if (thread) {
+      await db.patch(action.threadId, {
+        actionCount: Math.max(0, thread.actionCount - 1),
+        updatedAt: Date.now(),
+      });
+    }
+  },
+});
+
 export const create = mutation({
   args: {
     previewId: v.id("previews"),

@@ -193,18 +193,30 @@ export function ReviewDock() {
             </button>
           </div>
           {s.actions.length === 0 ? (
-            <p className="q-ext-empty">No actions yet. They are synthesised from a thread.</p>
+            <p className="q-ext-empty">
+              No actions yet. Capture one from a message, or resolve a thread.
+            </p>
           ) : (
             s.actions.map((a) => (
-              <button
-                key={a._id}
-                type="button"
-                className="q-ext-row"
-                onClick={() => s.openThread(a.threadId)}
-              >
-                <span className="q-ext-row-t">{a.title}</span>
-                <span className="q-ext-row-k">{a.status}</span>
-              </button>
+              <div key={a._id} className="q-ext-row is-split">
+                <button
+                  type="button"
+                  className="q-ext-row-main"
+                  onClick={() => s.openThread(a.threadId)}
+                  title={a.summary}
+                >
+                  <span className="q-ext-row-t">{a.title}</span>
+                </button>
+                <button
+                  type="button"
+                  className="q-ext-x"
+                  onClick={() => void s.removeAction(a._id)}
+                  aria-label={`Remove action: ${a.title}`}
+                  title="Remove this action"
+                >
+                  ×
+                </button>
+              </div>
             ))
           )}
         </div>

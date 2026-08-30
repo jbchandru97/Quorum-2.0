@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { AvatarStack, SourceChip, SourceChips, type Person } from "@/components/quorum/primitives";
@@ -108,6 +108,7 @@ export default function ThreadsPage() {
     useQuery(api.threads.listByPreview, preview ? { previewId: preview._id } : "skip") ?? [];
   const actions =
     useQuery(api.actions.listByPreview, preview ? { previewId: preview._id } : "skip") ?? [];
+  const removeAction = useMutation(api.actions.remove);
 
   const open = threads.filter((t) => t.status === "open");
   const resolved = threads.filter((t) => t.status === "resolved");
@@ -300,6 +301,15 @@ export default function ThreadsPage() {
                         <div className="q-ws-action-head">
                           <b>{a.title}</b>
                           <span>{a.status}</span>
+                          <button
+                            type="button"
+                            className="q-ws-action-x"
+                            onClick={() => void removeAction({ actionId: a._id })}
+                            aria-label={`Remove action: ${a.title}`}
+                            title="Remove this action"
+                          >
+                            ×
+                          </button>
                         </div>
                         <p>{a.summary}</p>
                         <dl>
