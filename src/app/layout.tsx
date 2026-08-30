@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
+import { ConvexClientProvider } from "./ConvexClientProvider";
 import "./globals.css";
 
 /* Three typefaces, three roles — the split the Design Companion
@@ -42,7 +43,9 @@ export default function RootLayout({
       lang="en"
       className={`${bricolage.variable} ${inter.variable} ${jetbrains.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <ConvexClientProvider>{children}</ConvexClientProvider>
+      </body>
     </html>
   );
 }

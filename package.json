@@ -5,11 +5,14 @@
   "description": "Quorum — the collaborative decision stack for AI-native product teams.",
   "scripts": {
     "dev": "next dev",
+    "dev:convex": "convex dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "context.dev": "^2.14.0",
+    "convex": "^1.45.0",
     "framer-motion": "^12.39.0",
     "lottie-react": "^2.4.1",
     "next": "16.2.6",

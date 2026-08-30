@@ -12,6 +12,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "convex/_generated/**",
 
     // The cloned Malbank / Aql AI host app. Vendored from
     // jbchandru97/mal-ai and deliberately kept as-is so its
