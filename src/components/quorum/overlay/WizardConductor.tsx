@@ -9,10 +9,11 @@ import { WIZARD_STEPS } from "./wizard-steps";
 /* ───────────────────────────────────────────────────────────────
    WizardConductor — the right-arrow demo driver.
 
-   → runs the next step; ← walks back where a step is UI-only;
-   ⇧R or the chip's reset button clears Convex demo data and
-   reloads for a clean rehearsal. Esc leaves the composer so the
-   arrows always come back to the conductor.
+   A minimal chip in the top-right corner: the step count, next,
+   and reset. → (or the next control) runs the next step; ← walks
+   back where a step is UI-only; ⇧R or reset clears Convex demo
+   data and reloads. Esc leaves the composer so the arrows always
+   come back to the conductor.
    ─────────────────────────────────────────────────────────────── */
 
 export function WizardConductor() {
@@ -45,6 +46,23 @@ export function WizardConductor() {
     window.location.assign("/demo/playground?review=1");
   }, []);
 
+  const runNext = useCallback(() => {
+    if (busyRef.current) return;
+    const idx = doneRef.current;
+    const step = WIZARD_STEPS[idx];
+    if (!step) return;
+    busyRef.current = true;
+    setRunning(true);
+    void step
+      .run({ session: sessionRef.current, push: router.push })
+      .catch(() => {})
+      .finally(() => {
+        busyRef.current = false;
+        setRunning(false);
+        setDone(idx + 1);
+      });
+  }, [router]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
@@ -75,62 +93,44 @@ export function WizardConductor() {
       }
 
       if (e.key !== "ArrowRight") return;
-      if (busyRef.current) return;
-      const idx = doneRef.current;
-      const step = WIZARD_STEPS[idx];
-      if (!step) return;
-
       e.preventDefault();
-      busyRef.current = true;
-      setRunning(true);
-      void step
-        .run({ session: sessionRef.current, push: router.push })
-        .catch(() => {})
-        .finally(() => {
-          busyRef.current = false;
-          setRunning(false);
-          setDone(idx + 1);
-        });
+      runNext();
     };
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [router, reset]);
+  }, [router, reset, runNext]);
 
   const total = WIZARD_STEPS.length;
-  const current = WIZARD_STEPS[done];
+  const complete = done >= total;
 
   return (
     <div className="q-wizard-chip" aria-live="polite">
       {resetting ? (
-        <span className="is-live">
-          <Shimmer>resetting demo data…</Shimmer>
-        </span>
+        <Shimmer className="q-wiz-n">…</Shimmer>
       ) : (
         <>
-          {done === 0 && !running && (
-            <span>
-              demo · <b>→</b> to start
-            </span>
-          )}
-          {running && (
-            <span className="is-live">
-              <Shimmer>{`${done + 1}/${total} · ${WIZARD_STEPS[done].label}`}</Shimmer>
-            </span>
-          )}
-          {!running && done > 0 && done < total && (
-            <span>
-              <b>{done}/{total}</b> · next: {current?.label} · <b>→</b>
-            </span>
-          )}
-          {!running && done >= total && <span>demo complete</span>}
+          <span className="q-wiz-n">
+            {running ? <Shimmer>{`${done + 1}/${total}`}</Shimmer> : `${done}/${total}`}
+          </span>
           <button
             type="button"
-            className="q-wizard-reset"
+            className="q-wiz-btn"
+            disabled={running || complete}
+            onClick={runNext}
+            title={`Next step (→)${WIZARD_STEPS[done] ? ` — ${WIZARD_STEPS[done].label}` : ""}`}
+            aria-label="Next demo step"
+          >
+            next
+          </button>
+          <button
+            type="button"
+            className="q-wiz-btn"
             onClick={() => void reset()}
             title="Clear demo data and restart (⇧R)"
+            aria-label="Reset demo"
           >
-            ↺ reset
+            reset
           </button>
         </>
       )}

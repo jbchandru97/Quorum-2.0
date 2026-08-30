@@ -1062,32 +1062,36 @@ html[data-quorum-inspect] .q-wizard-chip * { cursor: default !important; }
 
 .q-wizard-chip {
   position: fixed;
-  right: 14px;
-  bottom: 26px;
+  top: 12px;
+  right: 12px;
   z-index: var(--q-z-toolbar);
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  align-items: stretch;
   font: 400 10px/1 var(--q-mono);
   letter-spacing: .04em;
   color: var(--q-muted);
   background: var(--q-paper);
   border: 1px solid var(--q-rule);
-  padding: 6px 9px;
-  animation: q-enter-up var(--q-t) var(--q-ease) both;
+  animation: q-dock-in var(--q-t) var(--q-ease) both;
   user-select: none;
 }
 
-.q-wizard-chip b { font-weight: 500; color: var(--q-ink); }
-.q-wizard-chip .is-live { color: var(--q-signal); }
+.q-wiz-n {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+  font-weight: 500;
+  color: var(--q-ink);
+  font-variant-numeric: tabular-nums;
+}
 
-.q-wizard-reset {
+.q-wiz-btn {
   font: 400 10px/1 var(--q-mono);
   letter-spacing: .04em;
   color: var(--q-muted);
+  padding: 5px 8px;
   border-left: 1px solid var(--q-rule);
-  padding: 2px 0 2px 8px;
-  margin-left: 2px;
-  transition: color var(--q-t-fast) var(--q-ease);
+  transition: color var(--q-t-fast) var(--q-ease), background-color var(--q-t-fast) var(--q-ease);
 }
-.q-wizard-reset:hover { color: var(--q-ink); }
+.q-wiz-btn:hover:not(:disabled) { color: var(--q-ink); background: var(--q-fill); }
+.q-wiz-btn:disabled { opacity: .4; cursor: default; }
