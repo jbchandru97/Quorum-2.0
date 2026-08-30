@@ -68,16 +68,21 @@ export function ThreadPopup() {
 
   if (!open || !anchor) return null;
 
-  /* Side with room wins; right is preferred. Everything clamps to
-     the viewport so the dialog never leaves the screen. */
+  /* The dialog docks to the count bubble, not the target's whole
+     rectangle — the bubble sits at the anchor's top-right corner
+     (same maths as ThreadMarkers). Right of the bubble when there
+     is room, left of it otherwise; everything clamps on-screen. */
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const maxHeight = Math.min(520, vh - 2 * MARGIN - 60);
-  const fitsRight = anchor.x + anchor.width + GAP + WIDTH <= vw - MARGIN;
+  const MARKER = 22;
+  const markerLeft = Math.min(Math.max(anchor.x + anchor.width - 10, 8), vw - 30);
+  const markerTop = Math.max(anchor.y - 10, 8);
+  const fitsRight = markerLeft + MARKER + GAP + WIDTH <= vw - MARGIN;
   const left = fitsRight
-    ? Math.min(anchor.x + anchor.width + GAP, vw - WIDTH - MARGIN)
-    : Math.max(anchor.x - GAP - WIDTH, MARGIN);
-  const top = Math.min(Math.max(anchor.y - 6, MARGIN), Math.max(MARGIN, vh - maxHeight - MARGIN));
+    ? markerLeft + MARKER + GAP
+    : Math.max(markerLeft - GAP - WIDTH, MARGIN);
+  const top = Math.min(Math.max(markerTop - 4, MARGIN), Math.max(MARGIN, vh - maxHeight - MARGIN));
 
   return (
     <div
