@@ -22,6 +22,7 @@
 
 - The hosted Convex project is `quorum`; local deployment configuration lives in the ignored `.env.local` file.
 - Required client variable: `NEXT_PUBLIC_CONVEX_URL`. `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_SITE_URL` are managed by the Convex CLI.
+- `NEXT_PUBLIC_CONVEX_URL` is also committed in `.env.production` (it is public — shipped to browsers anyway), so hosted builds work without configuring it. Secrets never go in that file.
 - Run `npm run dev:convex` alongside `npm run dev` while changing functions or schema. Run `npx convex dev --once` to generate types and deploy backend changes once.
 - Convex schema and functions live in `convex/`; generated files under `convex/_generated/` must not be edited manually.
 - The root `ConvexClientProvider` is in `src/app/ConvexClientProvider.tsx`.
