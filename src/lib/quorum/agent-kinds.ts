@@ -39,6 +39,16 @@ export type AgentAnswer = {
   findings?: { title: string; items: string[] };
   /** When the agent recommends a human, a one-tap follow-through. */
   suggestion?: { name: string; question: string };
+  /** A structured review: criterion cards with status tags. */
+  assessment?: AssessmentItem[];
+};
+
+export type AssessmentItem = {
+  criterion: string;
+  status: "pass" | "needs_review" | "unassessed";
+  note: string;
+  /** Suggested action title for a failing check. */
+  action?: string;
 };
 
 /** What the reviewer actually has selected, sent with a question so
@@ -58,7 +68,7 @@ export const AGENT_STEP_LABELS: Record<AgentKind, string[]> = {
   delay: ["Searching the codebase", "Checking product context", "Composing answer"],
   external: ["Identifying comparable products", "Scraping the top pages", "Composing answer"],
   unknown: ["Searching the codebase", "Checking design review guidance", "Composing answer"],
-  actions: ["Reading thread discussion", "Synthesizing actions"],
+  actions: ["Reading thread discussion", "Summarizing decisions", "Creating action items"],
 };
 
 /* ── question routing ─────────────────────────────────────────────
@@ -77,8 +87,8 @@ export function classifyQuestion(question: string): Exclude<AgentKind, "actions"
   if (/\b(delay|debounce|why (does|do|is|it) .*(wait|later)|immediately|after a (pause|moment)|timing)\b/.test(q))
     return "delay";
 
-  /* Seeded analytics precedent: performance and metrics. */
-  if (/\b(perform(ed|ance|s)?|engagement|metrics?|analytics?|conversion|click[- ]?through|adoption|usage|how did .+\b(do|land|convert))\b/.test(q))
+  /* Seeded analytics precedent: performance, metrics, prior success. */
+  if (/\b(perform(ed|ance|s)?|engagement|metrics?|analytics?|conversion|click[- ]?through|adoption|usage|success|succeed(ed)?|similar pattern|how did .+\b(do|land|convert))\b/.test(q))
     return "precedent";
 
   /* Internal process: validation against the team's own playbook. */

@@ -71,6 +71,9 @@ const ROLE_LABEL: Record<string, string> = {
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+/* Threads whose resolution gets a full agent synthesis. */
+const SYNTH_TARGETS: string[] = [PRIMARY_TARGET_KEY, "income-card"];
+
 export type ReviewSessionValue = {
   /* data (all realtime via Convex) */
   preview: Doc<"previews"> | null;
@@ -105,6 +108,7 @@ export type ReviewSessionValue = {
   setMode: (mode: "move" | "draw" | "select") => void;
   select: (selection: Selection) => void;
   selectPrimaryTarget: () => boolean;
+  selectTargetByKey: (key: string) => boolean;
   openThread: (id: Id<"threads">) => void;
   openPanel: () => void;
   closePanel: () => void;
@@ -121,6 +125,8 @@ export type ReviewSessionValue = {
   reopenActiveThread: () => Promise<void>;
   addToActions: () => Promise<boolean>;
   addMessageAsAction: (msg: Doc<"messages">, authorName: string) => Promise<void>;
+  addActionItem: (item: { title: string; summary: string }) => Promise<void>;
+  captureFailingCheck: () => Promise<boolean>;
   removeAction: (actionId: Id<"actions">) => Promise<void>;
   heartbeatAs: (externalId: string) => Promise<void>;
   resetDemoData: () => Promise<void>;
@@ -251,21 +257,29 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     setMode("move");
   }, []);
 
-  const selectPrimaryTarget = useCallback((): boolean => {
-    const target = targetByKey(PRIMARY_TARGET_KEY);
-    const el = document.querySelector(selectorFor(PRIMARY_TARGET_KEY));
-    if (!target || !el) return false;
-    const r = el.getBoundingClientRect();
-    select({
-      kind: "element",
-      key: target.key,
-      selector: selectorFor(target.key),
-      label: target.label,
-      breadcrumb: target.breadcrumb,
-      rect: { x: r.x, y: r.y, width: r.width, height: r.height },
-    });
-    return true;
-  }, [select]);
+  const selectTargetByKey = useCallback(
+    (key: string): boolean => {
+      const target = targetByKey(key);
+      const el = document.querySelector(selectorFor(key));
+      if (!target || !el) return false;
+      el.scrollIntoView({ block: "nearest" });
+      const r = el.getBoundingClientRect();
+      select({
+        kind: "element",
+        key: target.key,
+        selector: selectorFor(target.key),
+        label: target.label,
+        breadcrumb: target.breadcrumb,
+        rect: { x: r.x, y: r.y, width: r.width, height: r.height },
+      });
+      return true;
+    },
+    [select],
+  );
+  const selectPrimaryTarget = useCallback(
+    () => selectTargetByKey(PRIMARY_TARGET_KEY),
+    [selectTargetByKey],
+  );
 
   const openThread = useCallback((id: Id<"threads">) => {
     setActiveThreadId(id);
@@ -572,6 +586,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
           sources: answer.sources,
           findings: answer.findings,
           suggestion: answer.suggestion,
+          assessment: answer.assessment,
         });
       } else {
         await createMessage({
@@ -596,19 +611,28 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     runAgentRef.current = runAgent;
   }, [runAgent]);
 
-  /* Resolving is when the conversation becomes outputs: the scripted
-     thread gets the agent synthesis (summary + suggested actions the
-     humans can still remove); other threads get an honest closing
-     summary. Individual messages can be captured as actions at any
-     time before that. */
+  /* Resolving is when the conversation becomes outputs. The thread
+     is marked resolved first — a system line records it and by whom
+     — then the agent generates the summary and the action items,
+     which remain removable. Individual messages can be captured as
+     actions at any time before that. */
   const resolveActiveThread = useCallback(async () => {
     const threadId = activeThreadIdRef.current;
     if (!threadId) return;
     const thread = threadsRef.current.find((t) => t._id === threadId);
     if (thread?.status === "resolved") return;
 
-    const isPrimary = targetInfoFor().key === PRIMARY_TARGET_KEY;
-    if (isPrimary && messagesRef.current.length >= 3 && (thread?.actionCount ?? 0) === 0) {
+    await setThreadStatus({ threadId, status: "resolved" });
+    const maya = userByExternal(DEMO_USERS.designer);
+    await createMessage({
+      threadId,
+      authorType: "system",
+      content: `This conversation was marked resolved by ${maya?.name ?? "Maya"} (Designer).`,
+      messageKind: "status",
+    });
+
+    const key = targetInfoFor().key;
+    if (key && SYNTH_TARGETS.includes(key) && messagesRef.current.length >= 3) {
       await runAgentRef.current?.("actions");
     } else {
       const agentUser = userByExternal(DEMO_USERS.agent);
@@ -617,11 +641,10 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
         threadId,
         authorType: "agent",
         authorUserId: agentUser?._id,
-        content: `Resolved — ${messagesRef.current.length} messages, ${count} action${count === 1 ? "" : "s"} captured. Anything still open can be added from a message.`,
+        content: `Summary: ${messagesRef.current.length} messages, ${count} action${count === 1 ? "" : "s"} captured. Anything still open can be added from a message.`,
         messageKind: "summary",
       });
     }
-    await setThreadStatus({ threadId, status: "resolved" });
   }, [setThreadStatus, targetInfoFor, userByExternal, createMessage]);
 
   const reopenActiveThread = useCallback(async () => {
@@ -673,6 +696,48 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     },
     [createAction, createMessage, targetInfoFor, userByExternal],
   );
+
+  /* One structured item — used by the review-card inline capture. */
+  const addActionItem = useCallback(
+    async (item: { title: string; summary: string }) => {
+      const p = previewRef.current;
+      const threadId = activeThreadIdRef.current;
+      if (!p || !threadId) return;
+      const target = targetInfoFor();
+      await createAction({
+        previewId: p._id,
+        threadId,
+        title: item.title,
+        summary: item.summary,
+        targetDescription:
+          target.breadcrumb && target.breadcrumb.length > 0
+            ? target.breadcrumb.join(" / ")
+            : (target.label ?? "Thread target"),
+        scopeNotes: "Captured from the usability review assessment.",
+        acceptanceNotes: "The failing check passes on re-review.",
+      });
+      const agentUser = userByExternal(DEMO_USERS.agent);
+      await createMessage({
+        threadId,
+        authorType: "agent",
+        authorUserId: agentUser?._id,
+        content: `Added as an action: “${item.title}”`,
+        messageKind: "status",
+      });
+    },
+    [createAction, createMessage, targetInfoFor, userByExternal],
+  );
+
+  /* The wizard's version of clicking the failing card's button. */
+  const captureFailingCheck = useCallback(async (): Promise<boolean> => {
+    const withCards = [...messagesRef.current]
+      .reverse()
+      .find((m) => m.assessment && m.assessment.some((a) => a.status === "needs_review"));
+    const item = withCards?.assessment?.find((a) => a.status === "needs_review");
+    if (!item) return false;
+    await addActionItem({ title: item.action ?? item.criterion, summary: item.note });
+    return true;
+  }, [addActionItem]);
 
   const removeActionMutation = useMutation(api.actions.remove);
   const removeAction = useCallback(
@@ -753,6 +818,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     setMode,
     select,
     selectPrimaryTarget,
+    selectTargetByKey,
     openThread,
     openPanel: () => setPanelOpen(true),
     closePanel: () => setPanelOpen(false),
@@ -769,6 +835,8 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     reopenActiveThread,
     addToActions,
     addMessageAsAction,
+    addActionItem,
+    captureFailingCheck,
     removeAction,
     heartbeatAs,
     resetDemoData,

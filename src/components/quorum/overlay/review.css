@@ -642,6 +642,152 @@ html[data-quorum-inspect] .q-wizard-chip * { cursor: default !important; }
 .q-brand-chip img { display: block; flex: 0 0 auto; }
 .q-step-mark img { display: block; width: 12px; height: 12px; }
 
+/* ── system lines ────────────────────────────────────────────── */
+
+.q-sysline {
+  text-align: center;
+  font: 400 10px/1.6 var(--q-mono);
+  letter-spacing: .04em;
+  color: var(--q-muted);
+  padding: 2px 0;
+  animation: q-msg-in 340ms var(--q-ease-pop) both;
+}
+
+/* ── review assessment cards ─────────────────────────────────── */
+
+.q-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.q-card {
+  border: 1px solid var(--q-rule);
+  border-left: 2px solid var(--q-rule);
+  padding: 10px 12px;
+  animation: q-enter-up 300ms var(--q-ease-pop) both;
+}
+.q-card:nth-child(2) { animation-delay: 70ms; }
+.q-card:nth-child(3) { animation-delay: 140ms; }
+.q-card.is-pass { border-left-color: var(--q-ok); }
+.q-card.is-review { border-left-color: var(--q-signal); }
+
+.q-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+.q-card-head b { font: 500 12px/1.3 var(--q-body); color: var(--q-ink); }
+
+.q-card > p { font: 400 11.5px/1.5 var(--q-body); color: var(--q-muted); }
+
+.q-tag {
+  flex: 0 0 auto;
+  font: 500 9px/1 var(--q-mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 4px 7px;
+  border: 1px solid var(--q-rule);
+  color: var(--q-muted);
+}
+.q-tag.is-pass { color: var(--q-ok); border-color: var(--q-ok-line); background: var(--q-ok-bg); }
+.q-tag.is-review { color: var(--q-signal); border-color: transparent; background: var(--q-signal-wash); }
+
+.q-card-act {
+  margin-top: 8px;
+  font: 500 10px/1 var(--q-mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--q-signal);
+  padding: 5px 8px;
+  background: var(--q-signal-wash);
+  transition: transform 120ms var(--q-ease);
+}
+.q-card-act:active { transform: scale(0.96); }
+
+/* ── the Devin hand-off ──────────────────────────────────────── */
+
+.q-devin-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.q-devin-status img { border-radius: 3px; }
+.q-devin-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--q-ok);
+}
+
+.q-ext-head-actions { display: inline-flex; align-items: center; gap: 2px; }
+.q-ext-pick.is-on { color: var(--q-ink); background: var(--q-fill); }
+
+.q-devin-bar {
+  position: sticky;
+  top: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 11px;
+  background: var(--q-paper);
+  border-bottom: 1px solid var(--q-rule);
+  animation: q-enter-up 240ms var(--q-ease-pop) both;
+}
+
+.q-devin-all {
+  font: 400 10.5px/1 var(--q-mono);
+  color: var(--q-muted);
+  transition: color var(--q-t-fast) var(--q-ease);
+}
+.q-devin-all:hover { color: var(--q-ink); }
+
+.q-devin-send { font-size: 11px; padding: 6px 10px; }
+
+.q-check {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  margin-left: 11px;
+  border: 1px solid var(--q-line-strong);
+  transition: background-color var(--q-t-fast) var(--q-ease), border-color var(--q-t-fast) var(--q-ease);
+}
+.q-check.is-on {
+  background: var(--q-signal);
+  border-color: var(--q-signal);
+}
+
+.q-devin-sent {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 9px;
+  font: 400 9.5px/1 var(--q-mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--q-ok);
+  flex: 0 0 auto;
+}
+.q-devin-sent img { border-radius: 2px; }
+
+.q-ext-foot {
+  position: sticky;
+  bottom: 0;
+  display: block;
+  padding: 8px 11px;
+  background: var(--q-paper);
+  border-top: 1px solid var(--q-rule);
+  font: 400 10px/1.5 var(--q-mono);
+  color: var(--q-muted);
+  text-decoration: none;
+  transition: color var(--q-t-fast) var(--q-ease);
+}
+.q-ext-foot:hover { color: var(--q-ink); }
+
 /* ── repo file chips ─────────────────────────────────────────── */
 
 .q-file-chip svg {

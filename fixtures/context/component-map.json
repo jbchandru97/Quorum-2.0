@@ -1,5 +1,5 @@
 {
-  "note": "Curated target map for the scripted scenario. Per /docs/05-INTEGRATIONS.md it is acceptable to hand-map the demo target rather than index the codebase.",
+  "note": "Curated target map for the scripted scenario. Per /docs/05-INTEGRATIONS.md it is acceptable to hand-map the demo targets rather than index the codebase.",
   "targets": [
     {
       "key": "ai-insight-prompt",
@@ -12,6 +12,22 @@
         "Empty state"
       ],
       "sharedComponentNote": "The base component is shared across three surfaces. Changing it everywhere affects all three and needs broader validation."
+    },
+    {
+      "key": "ai-assistant-tab",
+      "label": "Aql AI tab",
+      "breadcrumb": ["Sidebar", "Navigation", "AqlAITab"],
+      "surface": "/demo/playground",
+      "sharedWith": ["Sidebar"],
+      "sharedComponentNote": "The assistant entry point in the primary navigation — a new, separate tab for the AI conversation."
+    },
+    {
+      "key": "income-card",
+      "label": "Total Income card",
+      "breadcrumb": ["Dashboard", "IncomeWidget"],
+      "surface": "/demo/playground",
+      "sharedWith": ["Dashboard", "Reports"],
+      "sharedComponentNote": "The stat card is a shared base component; the month dropdown was recently added to this instance only."
     }
   ]
 }

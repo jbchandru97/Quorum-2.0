@@ -45,16 +45,26 @@ function withMentions(text: string): React.ReactNode[] {
   );
 }
 
+const STATUS_TAG: Record<string, { label: string; cls: string }> = {
+  pass: { label: "Pass", cls: "is-pass" },
+  needs_review: { label: "Needs review", cls: "is-review" },
+  unassessed: { label: "Unassessed", cls: "is-unassessed" },
+};
+
 function MessageRow({
   msg,
   author,
   onAsk,
   onCapture,
+  onCaptureCard,
+  onViewActions,
 }: {
   msg: Doc<"messages">;
   author?: Doc<"users">;
   onAsk?: (suggestion: { name: string; question: string }) => void;
   onCapture?: (msg: Doc<"messages">, authorName: string) => void;
+  onCaptureCard?: (item: { title: string; summary: string }) => void;
+  onViewActions?: () => void;
 }) {
   const isAgent = msg.authorType === "agent";
   const name = isAgent ? "Quorum" : (author?.name ?? "Teammate");
@@ -66,6 +76,11 @@ function MessageRow({
   const repoFiles = (msg.sources ?? []).filter((s) => s.detail?.startsWith("repo"));
   const otherSources = (msg.sources ?? []).filter((s) => !s.detail?.startsWith("repo"));
   const shownFiles = showAllFiles ? repoFiles : repoFiles.slice(0, 1);
+
+  /* A system line: no avatar, no chrome — the record itself. */
+  if (msg.authorType === "system") {
+    return <p className="q-sysline">{msg.content}</p>;
+  }
 
   return (
     <div className={`q-msg${isAgent ? " is-agent" : ""}`}>
@@ -100,6 +115,42 @@ function MessageRow({
           >
             <IconMessage />
             Ask {msg.suggestion.name}
+          </button>
+        )}
+        {msg.assessment && msg.assessment.length > 0 && (
+          <div className="q-cards">
+            {msg.assessment.map((item) => {
+              const tag = STATUS_TAG[item.status] ?? STATUS_TAG.unassessed;
+              return (
+                <div key={item.criterion} className={`q-card ${tag.cls}`}>
+                  <div className="q-card-head">
+                    <b>{item.criterion}</b>
+                    <span className={`q-tag ${tag.cls}`}>{tag.label}</span>
+                  </div>
+                  <p>{item.note}</p>
+                  {item.status === "needs_review" && onCaptureCard && (
+                    <button
+                      type="button"
+                      className="q-card-act"
+                      onClick={() =>
+                        onCaptureCard({
+                          title: item.action ?? item.criterion,
+                          summary: item.note,
+                        })
+                      }
+                    >
+                      + Add as action
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {isAgent && msg.messageKind === "summary" && onViewActions && (
+          <button type="button" className="q-ask-bar" onClick={onViewActions}>
+            <IconResolve />
+            View action items
           </button>
         )}
         {msg.findings && msg.findings.items.length > 0 && (
@@ -307,6 +358,8 @@ export function ThreadBody() {
             onCapture={
               resolved ? undefined : (msg, name) => void s.addMessageAsAction(msg, name)
             }
+            onCaptureCard={resolved ? undefined : (item) => void s.addActionItem(item)}
+            onViewActions={() => s.openSurface("actions")}
           />
         ))}
         {agentRun && (

@@ -30,6 +30,7 @@ import type {
   AgentActionPayload,
   AgentAnswer,
   AgentKind,
+  AssessmentItem,
 } from "./agent-kinds";
 
 export type { AgentActionPayload, AgentAnswer, AgentKind, AgentSource } from "./agent-kinds";
@@ -125,12 +126,27 @@ async function playbook(targetKey?: string | null): Promise<AgentAnswer> {
       ],
     };
   }
+  const assessment: AssessmentItem[] = [
+    {
+      criterion: "Discoverability",
+      status: "pass",
+      note: "The nudge sits where the user is already evaluating spending — found at the moment it is useful.",
+    },
+    {
+      criterion: "Clarity & transparency",
+      status: "needs_review",
+      note: "The nudge does not say what Aql AI will analyze before the click. The playbook requires an AI affordance to state what it will look at.",
+      action: "Update nudge copy to say what Aql AI will analyze",
+    },
+    {
+      criterion: "Cognitive load · Consistency · User control",
+      status: "unassessed",
+      note: "No evidence recorded in this thread yet — per the playbook, unassessed is never a pass.",
+    },
+  ];
   return {
     content:
-      "Assessed against the usability review process:\n" +
-      "Discoverability — Pass. The nudge sits where the user is already evaluating spending, so it is found at the moment it is useful.\n" +
-      "Clarity and transparency — Needs review. The playbook requires an AI affordance to say what it will look at, and this nudge does not explain what will be analyzed before the click.\n" +
-      "Cognitive load, consistency, and user control — no evidence recorded in this thread yet, so per the playbook they stay unassessed rather than passed.",
+      "Assessed against the usability review process. Checks that don't pass should become action items:",
     sources: [
       {
         label: "Design review playbook",
@@ -138,6 +154,7 @@ async function playbook(targetKey?: string | null): Promise<AgentAnswer> {
         detail: "internal",
       },
     ],
+    assessment,
   };
 }
 
@@ -350,7 +367,27 @@ function hostnameOf(url: string): string {
   }
 }
 
-function actions(): AgentAnswer {
+function actions(targetKey?: string | null): AgentAnswer {
+  /* Resolving the income-card thread: the engineering decision. */
+  if (targetKey === "income-card") {
+    const t = findTarget("income-card");
+    return {
+      content:
+        "Summary: the month dropdown on Total Income ships as a local change to meet the deadline. The component-level refactor is captured as a backlog action item.",
+      sources: [{ label: "Thread discussion", provenance: "human" }],
+      actions: [
+        {
+          title: "Refactor Total Income dropdown into the shared card component",
+          summary:
+            "Promote the locally-added month dropdown on the Total Income card into the shared stat-card component once the customer deadline passes.",
+          targetDescription: t?.breadcrumb.join(" / ") ?? "Dashboard / IncomeWidget",
+          scopeNotes: "Backlog — after the current release. The local change stays in place until then.",
+          acceptanceNotes: "Dropdown behaviour identical across every surface that renders the card.",
+        },
+      ],
+    };
+  }
+
   const target = findTarget(PRIMARY_TARGET_KEY);
   const breadcrumb = target?.breadcrumb.join(" / ") ?? "Dashboard / SpendingSummary / AIInsightPrompt";
   const shared = target?.sharedWith.join(", ") ?? "Dashboard, Monthly Insights, Empty state";
@@ -401,7 +438,7 @@ export async function answerFor(
     case "unknown":
       return unknown(opts.question, { ...opts.target, key: targetKey });
     case "actions":
-      return actions();
+      return actions(targetKey);
   }
 }
 

@@ -41,6 +41,14 @@ export function IconMessage() {
   );
 }
 
+export function IconPlus() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M8 3.5v9M3.5 8h9" />
+    </svg>
+  );
+}
+
 export function IconFile() {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -58,6 +66,7 @@ export function IconFile() {
 import atlassianSvg from "../../../assets/brands/atlassian.svg";
 import amplitudeSvg from "../../../assets/brands/amplitude.svg";
 import contextdevSvg from "../../../assets/brands/contextdev.svg";
+import devinPng from "../../../assets/brands/devin.png";
 import quorumWhiteSvg from "../../../assets/brands/quorum-white.svg";
 
 function BrandImg({ src, size }: { src: string; size: number }) {
@@ -77,6 +86,10 @@ export function BrandAmplitude({ size = 12 }: { size?: number }) {
 
 export function BrandContextDev({ size = 12 }: { size?: number }) {
   return <BrandImg src={contextdevSvg.src} size={size} />;
+}
+
+export function BrandDevin({ size = 12 }: { size?: number }) {
+  return <BrandImg src={devinPng.src} size={size} />;
 }
 
 /** The white Quorum mark, for the dark review chrome. */

@@ -135,6 +135,22 @@ export default defineSchema({
         question: v.string(),
       }),
     ),
+    /* A structured review assessment: criterion cards with status
+       tags. Failing checks carry a suggested action title. */
+    assessment: v.optional(
+      v.array(
+        v.object({
+          criterion: v.string(),
+          status: v.union(
+            v.literal("pass"),
+            v.literal("needs_review"),
+            v.literal("unassessed"),
+          ),
+          note: v.string(),
+          action: v.optional(v.string()),
+        }),
+      ),
+    ),
     createdAt: v.number(),
   }).index("by_thread", ["threadId"]),
 

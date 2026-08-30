@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { AvatarStack } from "@/components/quorum/primitives";
 import { timeAgo } from "@/lib/quorum/relative-time";
-import { IconClose } from "./icons";
+import { BrandDevin, IconClose, IconPlus } from "./icons";
 import { useReviewSession } from "./ReviewSession";
 
 /* ───────────────────────────────────────────────────────────────
@@ -77,6 +77,10 @@ export function ReviewDock() {
 
   const [dock, setDock] = useState<DockSide>("bottom");
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
+  /* Devin hand-off: selection mode over the actions list. */
+  const [picking, setPicking] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [sent, setSent] = useState<Set<string>>(new Set());
   const dockRef = useRef<HTMLDivElement | null>(null);
   const grabOffset = useRef({ dx: 0, dy: 0 });
 
@@ -183,16 +187,59 @@ export function ReviewDock() {
       {s.surface === "actions" && (
         <div className="q-dock-ext" role="region" aria-label="Actions">
           <div className="q-ext-head">
-            <span>actions · {s.actions.length}</span>
-            <button
-              type="button"
-              className="q-ext-x"
-              onClick={s.closeSurfaces}
-              aria-label="Close actions"
-            >
-              <IconClose />
-            </button>
+            <span className="q-devin-status">
+              <BrandDevin size={13} />
+              Devin connected
+              <i className="q-devin-dot" aria-hidden="true" />
+            </span>
+            <span className="q-ext-head-actions">
+              <button
+                type="button"
+                className={`q-ext-x q-ext-pick${picking ? " is-on" : ""}`}
+                onClick={() => {
+                  setPicking((v) => !v);
+                  setPicked(new Set());
+                }}
+                title={picking ? "Cancel selection" : "Select actions to hand off"}
+                aria-label={picking ? "Cancel selection" : "Select actions"}
+              >
+                {picking ? <IconClose /> : <IconPlus />}
+              </button>
+              <button
+                type="button"
+                className="q-ext-x"
+                onClick={s.closeSurfaces}
+                aria-label="Close actions"
+              >
+                <IconClose />
+              </button>
+            </span>
           </div>
+
+          {picking && s.actions.length > 0 && (
+            <div className="q-devin-bar">
+              <button
+                type="button"
+                className="q-devin-all"
+                onClick={() => setPicked(new Set(s.actions.map((a) => a._id)))}
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                className="q-btn is-primary q-devin-send"
+                disabled={picked.size === 0}
+                onClick={() => {
+                  setSent((cur) => new Set([...cur, ...picked]));
+                  setPicked(new Set());
+                  setPicking(false);
+                }}
+              >
+                Send to Devin{picked.size > 0 ? ` (${picked.size})` : ""}
+              </button>
+            </div>
+          )}
+
           {s.actions.length === 0 ? (
             <p className="q-ext-empty">
               No actions yet. Capture one from a message, or resolve a thread.
@@ -200,26 +247,54 @@ export function ReviewDock() {
           ) : (
             s.actions.map((a) => (
               <div key={a._id} className="q-ext-row is-split">
+                {picking && (
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={picked.has(a._id)}
+                    className={`q-check${picked.has(a._id) ? " is-on" : ""}`}
+                    onClick={() =>
+                      setPicked((cur) => {
+                        const next = new Set(cur);
+                        if (next.has(a._id)) next.delete(a._id);
+                        else next.add(a._id);
+                        return next;
+                      })
+                    }
+                    aria-label={`Select ${a.title}`}
+                  />
+                )}
                 <button
                   type="button"
                   className="q-ext-row-main"
-                  onClick={() => s.openThread(a.threadId)}
+                  onClick={() => (picking ? undefined : s.openThread(a.threadId))}
                   title={a.summary}
                 >
                   <span className="q-ext-row-t">{a.title}</span>
                 </button>
-                <button
-                  type="button"
-                  className="q-ext-x"
-                  onClick={() => void s.removeAction(a._id)}
-                  aria-label={`Remove action: ${a.title}`}
-                  title="Remove this action"
-                >
-                  <IconClose />
-                </button>
+                {sent.has(a._id) ? (
+                  <span className="q-devin-sent" title="Handed off to Devin">
+                    <BrandDevin size={11} />
+                    sent
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="q-ext-x"
+                    onClick={() => void s.removeAction(a._id)}
+                    aria-label={`Remove action: ${a.title}`}
+                    title="Remove this action"
+                  >
+                    <IconClose />
+                  </button>
+                )}
               </div>
             ))
           )}
+
+          <a className="q-ext-foot" href="/quorum/threads">
+            Threads and actions persist in the workspace → /quorum/threads
+          </a>
         </div>
       )}
 

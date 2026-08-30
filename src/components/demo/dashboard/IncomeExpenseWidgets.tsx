@@ -123,6 +123,9 @@ function IncomeWidget({ gap = 24 }: { gap?: number }) {
   const income = useCountUp(36240.28);
   return (
     <div
+      /* Quorum: review anchor for the scripted demo — see
+         fixtures/context/component-map.json. */
+      data-quorum-target="income-card"
       style={{
         backgroundColor: "var(--bg-white-0)",
         border: "1px solid var(--stroke-soft-200)",
