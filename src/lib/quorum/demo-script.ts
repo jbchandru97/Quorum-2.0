@@ -21,8 +21,9 @@ export const SCRIPT = {
   /* ── Thread 1 · AI insight nudge ─────────────────────────────── */
   q1Rationale: "Why was this AI nudge introduced here, inside Spending Summary?",
 
-  /* Straight to the person who holds the lived context. */
-  qDelayToPm: "@Rohan why does the nudge appear after a delay rather than immediately?",
+  /* Asked to the agent first — it admits the rationale is not
+     written down and suggests the PM; the Ask bar does the tagging. */
+  qDelay: "Why does the nudge appear after a delay rather than immediately?",
   pmDelayReply:
     "I wanted the dashboard to establish itself first. If the AI treatment appeared immediately, it competed with the spending number the user came to see.",
 

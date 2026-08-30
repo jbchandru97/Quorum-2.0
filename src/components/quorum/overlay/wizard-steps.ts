@@ -60,11 +60,15 @@ export const WIZARD_STEPS: WizardStep[] = [
   },
   {
     id: "delay",
-    label: "PM · why the delay?",
+    label: "agent admits · Ask Rohan",
     run: async ({ session }) => {
-      /* Straight to the person with the lived context — the tagged
-         teammate replies through the same Convex path, realtime. */
-      await session.typeAndSendAsDesigner(SCRIPT.qDelayToPm);
+      /* Asked to the agent first: it finds the delay in the code
+         but no written rationale, and suggests the PM. The Ask bar
+         under its answer does the tagging — one tap, no retyping —
+         and the PM replies through the same Convex path. */
+      await session.typeAndSendAsDesigner(SCRIPT.qDelay);
+      await sleep(1100);
+      await session.askSuggestedHuman();
       await sleep(2400);
     },
   },

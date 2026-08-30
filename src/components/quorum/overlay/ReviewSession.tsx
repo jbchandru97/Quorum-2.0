@@ -127,6 +127,7 @@ export type ReviewSessionValue = {
   addMessageAsAction: (msg: Doc<"messages">, authorName: string) => Promise<void>;
   addActionItem: (item: { title: string; summary: string }) => Promise<void>;
   captureFailingCheck: () => Promise<boolean>;
+  askSuggestedHuman: () => Promise<boolean>;
   removeAction: (actionId: Id<"actions">) => Promise<void>;
   heartbeatAs: (externalId: string) => Promise<void>;
   resetDemoData: () => Promise<void>;
@@ -728,6 +729,19 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     [createAction, createMessage, targetInfoFor, userByExternal],
   );
 
+  /* The wizard's version of clicking the latest Ask bar. */
+  const askSuggestedHuman = useCallback(async (): Promise<boolean> => {
+    const withSuggestion = [...messagesRef.current]
+      .reverse()
+      .find((m) => m.authorType === "agent" && m.suggestion);
+    if (!withSuggestion?.suggestion) return false;
+    await sendAs(
+      DEMO_USERS.designer,
+      `@${withSuggestion.suggestion.name} ${withSuggestion.suggestion.question}`,
+    );
+    return true;
+  }, [sendAs]);
+
   /* The wizard's version of clicking the failing card's button. */
   const captureFailingCheck = useCallback(async (): Promise<boolean> => {
     const withCards = [...messagesRef.current]
@@ -837,6 +851,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     addMessageAsAction,
     addActionItem,
     captureFailingCheck,
+    askSuggestedHuman,
     removeAction,
     heartbeatAs,
     resetDemoData,
