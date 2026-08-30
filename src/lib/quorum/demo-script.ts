@@ -33,9 +33,10 @@ export const SCRIPT = {
   /* Beat 5 — external reference via Context.dev */
   q5External: "How do comparable finance products introduce an AI assistant?",
 
-  /* Beat 6 — implementation scope discussion */
+  /* Beat 6 — implementation scope discussion. The proposal tags the
+     PM: a tagged human owns the reply, so the agent stays silent. */
   proposal:
-    "Proposal: the nudge copy should say what Aql AI will analyze before the user clicks.",
+    "@Rohan proposal: the nudge copy should say what Aql AI will analyze before the user clicks.",
   pmAsksEngineer: "@Arun how large is that copy change?",
   engineerScope:
     "This component is shared across the dashboard, Monthly Insights, and the empty state. Updating the base component would affect all three surfaces and require broader validation. A dashboard-only scoped change is quick; a full shared-component update should be handled separately.",

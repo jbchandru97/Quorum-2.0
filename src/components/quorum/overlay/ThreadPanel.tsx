@@ -141,6 +141,14 @@ export function ThreadPanel() {
 
   const resolved = activeThread?.status === "resolved";
 
+  /* Tagged a teammate → the thread is theirs until they answer.
+     Shown only while the tag is the latest word in the thread. */
+  const last = messages[messages.length - 1];
+  const waitingOn =
+    last && last.authorType === "human"
+      ? (last.content.match(/@(Rohan|Arun|Maya)\b/i)?.[1] ?? null)
+      : null;
+
   const onComposerKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -210,11 +218,16 @@ export function ThreadPanel() {
               </div>
             </div>
           )}
+          {!agentRun && waitingOn && (
+            <p className="q-thread-waiting">
+              waiting for <span className="q-mention">@{waitingOn}</span> to reply
+            </p>
+          )}
         </div>
 
         <div className="q-composer">
           <div className="q-composer-mentions">
-            {["Rohan", "Arun"].map((name) => (
+            {["Quorum", "Rohan", "Arun"].map((name) => (
               <button
                 key={name}
                 type="button"

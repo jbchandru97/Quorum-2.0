@@ -55,7 +55,20 @@ const CANNOT = (what: string): AgentAnswer => ({
   sources: [],
 });
 
-async function rationale(): Promise<AgentAnswer> {
+/* The fixture docs document exactly one target: the AI insight
+   nudge. Serving their content for any other target would be a
+   fabricated citation, so every fixture-backed source is gated on
+   the thread's target and admits the gap otherwise (docs/06). */
+const documentsTarget = (targetKey?: string | null) => targetKey === PRIMARY_TARGET_KEY;
+
+async function rationale(targetKey?: string | null): Promise<AgentAnswer> {
+  if (!documentsTarget(targetKey)) {
+    return {
+      content:
+        "I couldn't find a documented rationale for this target — the product rationale on file covers the AI insight nudge, not this element. Someone who worked on it may know; you may want to tag them.",
+      sources: [],
+    };
+  }
   const doc = await readMarkdownFixture("productRationale");
   const lead = doc ? leadParagraph(doc) : null;
   if (!lead) return CANNOT("a documented product rationale");
@@ -67,9 +80,18 @@ async function rationale(): Promise<AgentAnswer> {
   };
 }
 
-async function playbook(): Promise<AgentAnswer> {
+async function playbook(targetKey?: string | null): Promise<AgentAnswer> {
   const doc = await readMarkdownFixture("designReviewPlaybook");
   if (!doc) return CANNOT("the internal design review playbook");
+  if (!documentsTarget(targetKey)) {
+    return {
+      content:
+        "The usability review process assesses five criteria: discoverability, clarity and transparency, cognitive load, consistency with existing patterns, and user control. No assessment has been recorded for this target yet — per the playbook, unassessed criteria are never counted as passes.",
+      sources: [
+        { label: "Design review playbook", provenance: "cited", detail: "internal" },
+      ],
+    };
+  }
   return {
     content:
       "Assessed against the usability review process:\n" +
@@ -86,7 +108,14 @@ async function playbook(): Promise<AgentAnswer> {
   };
 }
 
-function precedent(): AgentAnswer {
+function precedent(targetKey?: string | null): AgentAnswer {
+  if (!documentsTarget(targetKey)) {
+    return {
+      content:
+        "The seeded analytics cover a precedent for the contextual AI prompt pattern only — there are no metrics recorded for this target. I won't infer numbers that don't exist.",
+      sources: [],
+    };
+  }
   const p = analyticsPrecedents[0];
   if (!p) return CANNOT("a precedent metric");
   return {
@@ -101,7 +130,8 @@ function precedent(): AgentAnswer {
   };
 }
 
-async function delay(): Promise<AgentAnswer> {
+async function delay(targetKey?: string | null): Promise<AgentAnswer> {
+  if (!documentsTarget(targetKey)) return rationale(targetKey);
   const doc = await readMarkdownFixture("productRationale");
   const notesDelay = doc?.includes("delay") ?? false;
   return {
@@ -114,10 +144,12 @@ async function delay(): Promise<AgentAnswer> {
   };
 }
 
-async function external(): Promise<AgentAnswer> {
-  /* The one step that must be live. It never falls back to a canned
-     answer — on failure the route 502s and the thread shows it. */
-  const result = await searchExternalEvidence(EXTERNAL_QUERY);
+async function external(question?: string): Promise<AgentAnswer> {
+  /* The live source. The reviewer's own question is the search —
+     it never falls back to a canned answer; on failure the route
+     errors and the thread shows it honestly. */
+  const query = question?.trim().slice(0, 500) || EXTERNAL_QUERY;
+  const result = await searchExternalEvidence(query);
   const top = result.sources
     .filter((s) => s.relevance !== "low")
     .slice(0, 3);
@@ -132,13 +164,21 @@ async function external(): Promise<AgentAnswer> {
     .map((s) => `${s.title} — ${s.snippet.replace(/\s+/g, " ").slice(0, 140).trim()}`)
     .join("\n");
   return {
-    content: `Public references on how finance products introduce AI assistants:\n${bullets}`,
+    content: `Public references for “${query}”:\n${bullets}`,
     sources: top.map((s) => ({
       label: hostnameOf(s.url),
       provenance: "fetched" as const,
       url: s.url,
       detail: "Context.dev",
     })),
+  };
+}
+
+function unknown(): AgentAnswer {
+  return {
+    content:
+      "I couldn't find anything in the product rationale, the design review playbook, or the analytics precedent that answers this, and it doesn't read as a public-web question. This may need lived context — you may want to tag Rohan (PM) or Arun (Engineer).",
+    sources: [],
   };
 }
 
@@ -182,18 +222,23 @@ function actions(): AgentAnswer {
   };
 }
 
-export async function answerFor(kind: AgentKind): Promise<AgentAnswer> {
+export async function answerFor(
+  kind: AgentKind,
+  opts: { question?: string; targetKey?: string | null } = {},
+): Promise<AgentAnswer> {
   switch (kind) {
     case "rationale":
-      return rationale();
+      return rationale(opts.targetKey);
     case "playbook":
-      return playbook();
+      return playbook(opts.targetKey);
     case "precedent":
-      return precedent();
+      return precedent(opts.targetKey);
     case "delay":
-      return delay();
+      return delay(opts.targetKey);
     case "external":
-      return external();
+      return external(opts.question);
+    case "unknown":
+      return unknown();
     case "actions":
       return actions();
   }
@@ -202,6 +247,8 @@ export async function answerFor(kind: AgentKind): Promise<AgentAnswer> {
 export function isAgentKind(value: unknown): value is AgentKind {
   return (
     typeof value === "string" &&
-    ["rationale", "playbook", "precedent", "delay", "external", "actions"].includes(value)
+    ["rationale", "playbook", "precedent", "delay", "external", "unknown", "actions"].includes(
+      value,
+    )
   );
 }

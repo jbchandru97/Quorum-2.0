@@ -8,7 +8,12 @@ import type { ReviewSessionValue } from "./ReviewSession";
    so advancing triggers real behaviour — messages animate in, the
    agent thinks, Convex writes happen — never a screen swap.
 
-   Step 8 performs the REAL Context.dev request. If it fails the
+   The agent is summoned by the product's own routing now: an
+   untagged question from the reviewer answers itself, a tagged
+   teammate owns the reply. Each question step therefore carries its
+   answer, and the wizard only supplies the human side.
+
+   Step 6 performs the REAL Context.dev request. If it fails the
    agent posts an honest failure message and the demo can move on.
    ─────────────────────────────────────────────────────────────── */
 
@@ -41,8 +46,8 @@ export const WIZARD_STEPS: WizardStep[] = [
     },
   },
   {
-    id: "select",
-    label: "select the nudge",
+    id: "rationale",
+    label: "select · ask rationale",
     run: async ({ session }) => {
       /* Pick up the instrument first, so the audience sees the mode
          change before the ring lands on the target. */
@@ -50,33 +55,23 @@ export const WIZARD_STEPS: WizardStep[] = [
       await sleep(500);
       if (!session.selectPrimaryTarget()) return;
       await sleep(700);
+      /* Untagged question → the agent answers from the rationale. */
       await session.typeAndSendAsDesigner(SCRIPT.q1Rationale);
     },
     back: ({ session }) => session.closePanel(),
   },
   {
-    id: "rationale",
-    label: "agent · rationale",
-    run: async ({ session }) => {
-      await session.runAgent("rationale");
-    },
-  },
-  {
     id: "playbook",
-    label: "agent · playbook",
+    label: "validate · playbook",
     run: async ({ session }) => {
       await session.typeAndSendAsDesigner(SCRIPT.q2Playbook);
-      await sleep(400);
-      await session.runAgent("playbook");
     },
   },
   {
     id: "precedent",
-    label: "agent · precedent",
+    label: "evidence · precedent",
     run: async ({ session }) => {
       await session.typeAndSendAsDesigner(SCRIPT.q3Precedent);
-      await sleep(400);
-      await session.runAgent("precedent");
     },
   },
   {
@@ -84,9 +79,8 @@ export const WIZARD_STEPS: WizardStep[] = [
     label: "agent admits · tag PM",
     run: async ({ session }) => {
       await session.typeAndSendAsDesigner(SCRIPT.q4Delay);
-      await sleep(400);
-      await session.runAgent("delay");
       await sleep(600);
+      /* Tagging Rohan hands the thread to a human — no agent. */
       await session.typeAndSendAsDesigner(SCRIPT.tagPm);
     },
   },
@@ -103,8 +97,6 @@ export const WIZARD_STEPS: WizardStep[] = [
     label: "Context.dev · live",
     run: async ({ session }) => {
       await session.typeAndSendAsDesigner(SCRIPT.q5External);
-      await sleep(400);
-      await session.runAgent("external");
     },
   },
   {

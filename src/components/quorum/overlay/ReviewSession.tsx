@@ -16,6 +16,7 @@ import type { AgentStep, Person, Rect, StepStatus } from "@/components/quorum/pr
 import {
   AGENT_FAIL_TEXT,
   AGENT_STEP_LABELS,
+  classifyQuestion,
   type AgentAnswer,
   type AgentKind,
 } from "@/lib/quorum/agent-kinds";
@@ -105,7 +106,7 @@ export type ReviewSessionValue = {
   submitComposer: () => Promise<void>;
   typeAndSendAsDesigner: (text: string) => Promise<void>;
   sendAs: (externalId: string, text: string) => Promise<void>;
-  runAgent: (kind: AgentKind) => Promise<boolean>;
+  runAgent: (kind: AgentKind, question?: string) => Promise<boolean>;
   resolveActiveThread: () => Promise<void>;
   reopenActiveThread: () => Promise<void>;
   addToActions: () => Promise<boolean>;
@@ -173,12 +174,17 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
   const selectionRef = useRef(selection);
   const previewRef = useRef(preview);
   const usersRef = useRef(users);
+  const threadsRef = useRef(threads);
   const agentBusyRef = useRef(false);
+  const runAgentRef = useRef<((kind: AgentKind, question?: string) => Promise<boolean>) | null>(
+    null,
+  );
   useEffect(() => {
     activeThreadIdRef.current = activeThreadId;
     selectionRef.current = selection;
     previewRef.current = preview;
     usersRef.current = users;
+    threadsRef.current = threads;
   });
 
   const userByExternal = useCallback(
@@ -295,6 +301,39 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     return threadId;
   }, [createThread, userByExternal]);
 
+  /* ── who a message summons ─────────────────────────────────────
+     Tagging a teammate hands the thread to them: the agent stays
+     silent and everyone waits for the human. Tagging @Quorum — or
+     the local reviewer sending with no tags — summons the agent.
+     Remote participants' untagged replies never auto-summon it. */
+  const shouldAgentRespond = useCallback(
+    (authorExternalId: string, text: string): boolean => {
+      const mentions = Array.from(text.matchAll(/@(\w+)/g), (m) => m[1].toLowerCase());
+      if (mentions.includes("quorum")) return true;
+      const humanNames = usersRef.current
+        .filter((u) => u.role !== "agent" && u.externalId !== authorExternalId)
+        .map((u) => u.name.toLowerCase());
+      const tagsHuman = mentions.some((m) => humanNames.some((n) => n.startsWith(m)));
+      if (tagsHuman) return false;
+      return authorExternalId === DEMO_USERS.designer;
+    },
+    [],
+  );
+
+  /* The scripted target is the only one the fixture docs cover; the
+     server gates its internal sources on this key. */
+  const targetKeyFor = useCallback((): string | null => {
+    const sel = selectionRef.current;
+    if (sel?.kind === "element" && sel.key) return sel.key;
+    const thread = threadsRef.current.find((t) => t._id === activeThreadIdRef.current);
+    const a = thread?.anchorData;
+    if (a?.type === "element") {
+      const m = a.selector.match(/\[data-quorum-target="([^"]+)"\]/);
+      if (m) return m[1];
+    }
+    return null;
+  }, []);
+
   const sendAs = useCallback(
     async (externalId: string, text: string) => {
       const author = userByExternal(externalId);
@@ -314,8 +353,11 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
         messageKind: text.trim().endsWith("?") ? "question" : "reply",
         sourceType: "human",
       });
+      if (shouldAgentRespond(externalId, text)) {
+        await runAgentRef.current?.(classifyQuestion(text), text);
+      }
     },
-    [createMessage, ensureThread, userByExternal],
+    [createMessage, ensureThread, userByExternal, shouldAgentRespond],
   );
 
   const submitComposer = useCallback(async () => {
@@ -344,7 +386,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
 
   /* ── the agent ─────────────────────────────────────────────── */
   const runAgent = useCallback(
-    async (kind: AgentKind): Promise<boolean> => {
+    async (kind: AgentKind, question?: string): Promise<boolean> => {
       const threadId = activeThreadIdRef.current;
       if (!threadId || agentBusyRef.current) return false;
       agentBusyRef.current = true;
@@ -364,7 +406,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
       const request = fetch("/api/agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind }),
+        body: JSON.stringify({ kind, question, targetKey: targetKeyFor() }),
       })
         .then(async (r) => (r.ok ? ((await r.json()) as AgentAnswer) : null))
         .catch(() => null);
@@ -427,8 +469,14 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
       agentBusyRef.current = false;
       return ok;
     },
-    [createAction, createMessage, userByExternal],
+    [createAction, createMessage, userByExternal, targetKeyFor],
   );
+
+  /* sendAs is declared before runAgent, so the summon goes through
+     a ref that always points at the latest closure. */
+  useEffect(() => {
+    runAgentRef.current = runAgent;
+  }, [runAgent]);
 
   const resolveActiveThread = useCallback(async () => {
     const threadId = activeThreadIdRef.current;

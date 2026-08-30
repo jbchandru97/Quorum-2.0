@@ -122,6 +122,14 @@ html[data-quorum-inspect] .q-wizard-chip * { cursor: default !important; }
   max-width: 40ch;
 }
 
+.q-thread-waiting {
+  font: 400 10.5px/1 var(--q-mono);
+  letter-spacing: .03em;
+  color: var(--q-muted);
+  padding-left: 29px;   /* aligns with message bodies */
+  animation: q-enter-up var(--q-t) var(--q-ease) both;
+}
+
 .q-msg {
   display: flex;
   gap: 9px;
