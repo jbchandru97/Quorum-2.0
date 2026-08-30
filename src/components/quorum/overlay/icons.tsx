@@ -52,29 +52,42 @@ export function IconFile() {
 
 /* ── connector brands ─────────────────────────────────────────────
    Internal documentation reads through Atlassian; metrics read
-   through Amplitude. The marks live in src/assets/brands and render
-   at chip/step size. */
+   through Amplitude; the live web reads through Context.dev. The
+   marks live in src/assets/brands and render at chip/step size. */
 
 import atlassianSvg from "../../../assets/brands/atlassian.svg";
 import amplitudeSvg from "../../../assets/brands/amplitude.svg";
+import contextdevSvg from "../../../assets/brands/contextdev.svg";
+import quorumWhiteSvg from "../../../assets/brands/quorum-white.svg";
 
-export function BrandAtlassian({ size = 12 }: { size?: number }) {
+function BrandImg({ src, size }: { src: string; size: number }) {
   return (
     /* eslint-disable-next-line @next/next/no-img-element */
-    <img src={atlassianSvg.src} width={size} height={size} alt="" aria-hidden="true" />
+    <img src={src} width={size} height={size} alt="" aria-hidden="true" />
   );
+}
+
+export function BrandAtlassian({ size = 12 }: { size?: number }) {
+  return <BrandImg src={atlassianSvg.src} size={size} />;
 }
 
 export function BrandAmplitude({ size = 12 }: { size?: number }) {
-  return (
-    /* eslint-disable-next-line @next/next/no-img-element */
-    <img src={amplitudeSvg.src} width={size} height={size} alt="" aria-hidden="true" />
-  );
+  return <BrandImg src={amplitudeSvg.src} size={size} />;
 }
 
-/** The connector mark for a named source, if it has one. */
-export function brandFor(label: string): React.ReactNode | null {
-  if (/playbook|internal doc/i.test(label)) return <BrandAtlassian />;
-  if (/analytics|precedent|metric/i.test(label)) return <BrandAmplitude />;
+export function BrandContextDev({ size = 12 }: { size?: number }) {
+  return <BrandImg src={contextdevSvg.src} size={size} />;
+}
+
+/** The white Quorum mark, for the dark review chrome. */
+export function QuorumLogo({ size = 18 }: { size?: number }) {
+  return <BrandImg src={quorumWhiteSvg.src} size={size} />;
+}
+
+/** The connector mark for a source chip, if it has one. */
+export function brandFor(source: { label: string; detail?: string }): React.ReactNode | null {
+  if (/playbook|internal doc/i.test(source.label)) return <BrandAtlassian />;
+  if (/analytics|precedent|metric/i.test(source.label)) return <BrandAmplitude />;
+  if (/context\.dev/i.test(source.detail ?? "")) return <BrandContextDev />;
   return null;
 }

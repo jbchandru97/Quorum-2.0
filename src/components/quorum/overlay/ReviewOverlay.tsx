@@ -1,7 +1,7 @@
 "use client";
 
 import { OverlayRoot } from "@/components/quorum/primitives";
-import { QuorumMark } from "../QuorumMark";
+import { QuorumLogo } from "./icons";
 import { useReviewSession } from "./ReviewSession";
 import { ReviewDock } from "./ReviewDock";
 import { SelectionLayer } from "./SelectionLayer";
@@ -32,7 +32,7 @@ export function ReviewOverlay() {
           title="Open Quorum review"
           aria-label="Open Quorum review"
         >
-          <QuorumMark size={20} />
+          <QuorumLogo size={22} />
         </button>
       </OverlayRoot>
     );

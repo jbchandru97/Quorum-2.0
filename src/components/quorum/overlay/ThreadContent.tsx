@@ -10,8 +10,7 @@ import {
 } from "@/components/quorum/primitives";
 import { timeAgo } from "@/lib/quorum/relative-time";
 import { DEMO_USERS } from "@/lib/quorum/demo-script";
-import { QuorumMark } from "../QuorumMark";
-import { brandFor, IconFile, IconMessage, IconResolve } from "./icons";
+import { brandFor, IconFile, IconMessage, IconResolve, QuorumLogo } from "./icons";
 import { useReviewSession } from "./ReviewSession";
 
 /* ───────────────────────────────────────────────────────────────
@@ -72,7 +71,7 @@ function MessageRow({
     <div className={`q-msg${isAgent ? " is-agent" : ""}`}>
       <span className="q-msg-ava" aria-hidden="true">
         {isAgent ? (
-          <QuorumMark size={18} />
+          <QuorumLogo size={18} />
         ) : (
           <Avatar
             person={{ id: author?.externalId ?? "x", name }}
@@ -119,13 +118,31 @@ function MessageRow({
           <div className="q-msg-sources">
             <SourceChips>
               {otherSources.map((s) => {
-                const brand = brandFor(s.label);
-                return brand ? (
+                const brand = brandFor(s);
+                const chip = (
                   <span key={s.label + (s.url ?? "")} className="q-chip q-brand-chip">
                     {brand}
                     <span className="q-chip-label">{s.label}</span>
                     {s.detail && <span className="q-chip-detail">{s.detail}</span>}
                   </span>
+                );
+                return brand ? (
+                  s.url ? (
+                    <a
+                      key={s.label + (s.url ?? "")}
+                      className="q-chip q-brand-chip"
+                      href={s.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={s.label}
+                    >
+                      {brand}
+                      <span className="q-chip-label">{s.label}</span>
+                      {s.detail && <span className="q-chip-detail">{s.detail}</span>}
+                    </a>
+                  ) : (
+                    chip
+                  )
                 ) : (
                   <SourceChip
                     key={s.label + (s.url ?? "")}
@@ -295,7 +312,7 @@ export function ThreadBody() {
         {agentRun && (
           <div className="q-msg is-agent q-msg-live">
             <span className="q-msg-ava" aria-hidden="true">
-              <QuorumMark size={18} />
+              <QuorumLogo size={18} />
             </span>
             <div className="q-msg-main">
               <AgentSteps
@@ -327,7 +344,7 @@ export function ThreadBody() {
                   }}
                 >
                   {name === "Quorum" ? (
-                    <QuorumMark size={16} />
+                    <QuorumLogo size={16} />
                   ) : (
                     <Avatar person={{ id: name, name }} size={16} showPresence={false} />
                   )}

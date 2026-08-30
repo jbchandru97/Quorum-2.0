@@ -26,7 +26,7 @@ import {
   selectorFor,
   targetByKey,
 } from "@/lib/quorum/targets";
-import { BrandAmplitude, BrandAtlassian } from "./icons";
+import { BrandAmplitude, BrandAtlassian, BrandContextDev } from "./icons";
 
 /* ───────────────────────────────────────────────────────────────
    ReviewSession — the state and the verbs of a live review.
@@ -498,6 +498,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
       const stepIcon = (label: string): React.ReactNode => {
         if (/design review guidance/i.test(label)) return <BrandAtlassian />;
         if (/precedent metrics/i.test(label)) return <BrandAmplitude />;
+        if (/identifying comparable|scraping/i.test(label)) return <BrandContextDev />;
         return undefined;
       };
       const setSteps = (done: number, currentStatus: StepStatus) =>
