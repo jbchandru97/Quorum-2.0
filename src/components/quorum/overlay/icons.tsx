@@ -32,3 +32,20 @@ export function IconResolve() {
     </svg>
   );
 }
+
+export function IconMessage() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M2.5 3.5h11v7.5h-6l-3 2.5v-2.5h-2z" />
+    </svg>
+  );
+}
+
+export function IconFile() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M4 1.5h5.5L12 4v10.5H4z" />
+      <path d="M9.5 1.5V4H12" />
+    </svg>
+  );
+}

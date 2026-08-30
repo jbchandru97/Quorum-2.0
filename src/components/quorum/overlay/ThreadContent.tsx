@@ -11,7 +11,7 @@ import {
 import { timeAgo } from "@/lib/quorum/relative-time";
 import { DEMO_USERS } from "@/lib/quorum/demo-script";
 import { QuorumMark } from "../QuorumMark";
-import { IconResolve } from "./icons";
+import { IconFile, IconMessage, IconResolve } from "./icons";
 import { useReviewSession } from "./ReviewSession";
 
 /* ───────────────────────────────────────────────────────────────
@@ -61,6 +61,13 @@ function MessageRow({
   const name = isAgent ? "Quorum" : (author?.name ?? "Teammate");
   const role = isAgent ? "Agent" : author ? ROLE_LABEL[author.role] : "";
 
+  /* Repo references fold into one file chip + a "+N files" expander;
+     other provenance chips render as themselves. */
+  const [showAllFiles, setShowAllFiles] = useState(false);
+  const repoFiles = (msg.sources ?? []).filter((s) => s.detail?.startsWith("repo"));
+  const otherSources = (msg.sources ?? []).filter((s) => !s.detail?.startsWith("repo"));
+  const shownFiles = showAllFiles ? repoFiles : repoFiles.slice(0, 1);
+
   return (
     <div className={`q-msg${isAgent ? " is-agent" : ""}`}>
       <span className="q-msg-ava" aria-hidden="true">
@@ -85,6 +92,17 @@ function MessageRow({
             {withMentions(line)}
           </p>
         ))}
+        {msg.suggestion && onAsk && (
+          <button
+            type="button"
+            className="q-ask-bar"
+            onClick={() => onAsk(msg.suggestion!)}
+            title={`Tags @${msg.suggestion.name} with the question — they reply in-thread`}
+          >
+            <IconMessage />
+            Ask {msg.suggestion.name}
+          </button>
+        )}
         {msg.findings && msg.findings.items.length > 0 && (
           <details className="q-findings">
             <summary>
@@ -97,10 +115,10 @@ function MessageRow({
             </ul>
           </details>
         )}
-        {msg.sources && msg.sources.length > 0 && (
+        {(otherSources.length > 0 || repoFiles.length > 0) && (
           <div className="q-msg-sources">
             <SourceChips>
-              {msg.sources.map((s) => (
+              {otherSources.map((s) => (
                 <SourceChip
                   key={s.label + (s.url ?? "")}
                   label={s.label}
@@ -109,18 +127,26 @@ function MessageRow({
                   detail={s.detail}
                 />
               ))}
+              {shownFiles.map((f) => (
+                <span key={f.label + (f.detail ?? "")} className="q-chip q-file-chip">
+                  <IconFile />
+                  <span className="q-chip-label">{f.label}</span>
+                  <span className="q-chip-detail">
+                    {f.detail?.replace(/^repo\s*·\s*/, "")}
+                  </span>
+                </span>
+              ))}
+              {repoFiles.length > 1 && !showAllFiles && (
+                <button
+                  type="button"
+                  className="q-chip q-file-more"
+                  onClick={() => setShowAllFiles(true)}
+                >
+                  +{repoFiles.length - 1} file{repoFiles.length - 1 === 1 ? "" : "s"}
+                </button>
+              )}
             </SourceChips>
           </div>
-        )}
-        {msg.suggestion && onAsk && (
-          <button
-            type="button"
-            className="q-ask-bar"
-            onClick={() => onAsk(msg.suggestion!)}
-            title={`Tags @${msg.suggestion.name} with the question — they reply in-thread`}
-          >
-            Ask {msg.suggestion.name}
-          </button>
         )}
       </div>
       {onCapture && (
