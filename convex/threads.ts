@@ -22,6 +22,11 @@ const anchor = v.union(
   }),
 );
 
+export const get = query({
+  args: { threadId: v.id("threads") },
+  handler: ({ db }, { threadId }) => db.get(threadId),
+});
+
 export const listByPreview = query({
   args: { previewId: v.id("previews"), status: v.optional(status) },
   handler: ({ db }, args) => {

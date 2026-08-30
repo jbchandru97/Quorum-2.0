@@ -17,6 +17,17 @@ const sourceType = v.union(
   v.literal("human"),
   v.literal("system"),
 );
+const messageSource = v.object({
+  label: v.string(),
+  provenance: v.union(
+    v.literal("fetched"),
+    v.literal("cited"),
+    v.literal("inferred"),
+    v.literal("human"),
+  ),
+  url: v.optional(v.string()),
+  detail: v.optional(v.string()),
+});
 
 export const listByThread = query({
   args: { threadId: v.id("threads") },
@@ -39,6 +50,7 @@ export const create = mutation({
         excerpt: v.optional(v.string()),
       }),
     ),
+    sources: v.optional(v.array(messageSource)),
   },
   handler: async ({ db }, args) => {
     const thread = await db.get(args.threadId);

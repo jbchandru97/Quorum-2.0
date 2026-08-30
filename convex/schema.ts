@@ -52,6 +52,20 @@ const sourceType = v.union(
   v.literal("system"),
 );
 
+/* Source chips under an answer. Provenance matches the design
+   system's marks: fetched / cited / inferred / human. */
+const messageSource = v.object({
+  label: v.string(),
+  provenance: v.union(
+    v.literal("fetched"),
+    v.literal("cited"),
+    v.literal("inferred"),
+    v.literal("human"),
+  ),
+  url: v.optional(v.string()),
+  detail: v.optional(v.string()),
+});
+
 export default defineSchema({
   users: defineTable({
     externalId: v.string(),
@@ -104,6 +118,7 @@ export default defineSchema({
         excerpt: v.optional(v.string()),
       }),
     ),
+    sources: v.optional(v.array(messageSource)),
     createdAt: v.number(),
   }).index("by_thread", ["threadId"]),
 

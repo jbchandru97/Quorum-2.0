@@ -45,3 +45,22 @@ export const demo = mutation({
     return { userIds, previewId };
   },
 });
+
+/* Rehearsal reset per /docs/09-DEMO_WIZARD.md — the demo must be
+   re-runnable quickly. Clears the conversation state (threads,
+   messages, actions, presence) and keeps users and previews. */
+export const resetDemo = mutation({
+  args: {},
+  handler: async ({ db }) => {
+    const tables = ["messages", "actions", "threads", "presence"] as const;
+    let deleted = 0;
+    for (const table of tables) {
+      const rows = await db.query(table).collect();
+      for (const row of rows) {
+        await db.delete(row._id);
+        deleted++;
+      }
+    }
+    return { deleted };
+  },
+});

@@ -1,39 +1,31 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import {
   AvatarStack,
   FloatingToolbar,
   OverlayRoot,
   Popover,
   PopoverEmpty,
-  SidePanel,
+  PopoverRow,
   ToolbarButton,
   ToolbarGroup,
-  type Person,
 } from "@/components/quorum/primitives";
+import { timeAgo } from "@/lib/quorum/relative-time";
 import { QuorumMark } from "../QuorumMark";
+import { useReviewSession } from "./ReviewSession";
+import { SelectionLayer } from "./SelectionLayer";
+import { ThreadMarkers } from "./ThreadMarkers";
+import { ThreadPanel } from "./ThreadPanel";
+import "./review.css";
 
 /* ───────────────────────────────────────────────────────────────
-   ReviewOverlay — the review chrome, mounted over the host product.
+   ReviewOverlay — the review chrome, live.
 
-   SHELL ONLY. It composes the primitives into the bar, the panel and
-   the popovers the review needs, and holds the small pieces of state
-   that are genuinely UI-local per /docs/03-ARCHITECTURE.md: the
-   current mode, and whether a surface is open.
-
-   Deliberately absent, and due tomorrow:
-     · hit-testing the host DOM to find an element target
-     · drag-to-draw region selection
-     · creating a thread from either of those
-     · threads, messages, presence, agent answers, actions
-
-   Because it does not hit-test yet, the mode buttons change what the
-   bar says is selected and nothing else. That is honest — the bar is
-   real chrome around behaviour that has not been built.
+   Composes the real behaviour: hit-testing and drawing, markers,
+   the thread panel, and a bottom bar whose counts and popovers are
+   Convex subscriptions rather than placeholders.
    ─────────────────────────────────────────────────────────────── */
-
-type Mode = "select" | "draw";
 
 function IconSelect() {
   return (
@@ -67,24 +59,19 @@ function IconAction() {
   );
 }
 
-export function ReviewOverlay({
-  participants = [],
-}: {
-  participants?: Person[];
-}) {
-  const [mode, setMode] = useState<Mode>("select");
-  const [panelOpen, setPanelOpen] = useState(false);
-
+export function ReviewOverlay() {
+  const s = useReviewSession();
   const threadsRef = useRef<HTMLButtonElement | null>(null);
   const actionsRef = useRef<HTMLButtonElement | null>(null);
-  const [open, setOpen] = useState<"threads" | "actions" | null>(null);
 
-  /* One popover at a time — opening either closes the other. */
-  const toggle = (which: "threads" | "actions") =>
-    setOpen((cur) => (cur === which ? null : which));
+  const open = s.threads.filter((t) => t.status === "open");
+  const resolved = s.threads.filter((t) => t.status === "resolved");
 
   return (
     <OverlayRoot>
+      <SelectionLayer />
+      <ThreadMarkers />
+
       <FloatingToolbar>
         <ToolbarGroup label="Quorum">
           <span
@@ -105,16 +92,16 @@ export function ReviewOverlay({
         <ToolbarGroup label="Mode">
           <ToolbarButton
             icon={<IconSelect />}
-            active={mode === "select"}
-            onClick={() => setMode("select")}
+            active={s.mode === "select"}
+            onClick={() => s.setMode("select")}
             title="Select an element"
           >
             Select
           </ToolbarButton>
           <ToolbarButton
             icon={<IconDraw />}
-            active={mode === "draw"}
-            onClick={() => setMode("draw")}
+            active={s.mode === "draw"}
+            onClick={() => s.setMode("draw")}
             title="Draw over a region"
           >
             Draw
@@ -125,9 +112,9 @@ export function ReviewOverlay({
           <ToolbarButton
             ref={threadsRef}
             icon={<IconThread />}
-            count="—"
-            active={open === "threads"}
-            onClick={() => toggle("threads")}
+            count={s.openCount}
+            active={s.surface === "threads"}
+            onClick={() => s.toggleSurface("threads")}
             title="Threads"
           >
             Threads
@@ -135,68 +122,79 @@ export function ReviewOverlay({
           <ToolbarButton
             ref={actionsRef}
             icon={<IconAction />}
-            count="—"
-            active={open === "actions"}
-            onClick={() => toggle("actions")}
+            count={s.actions.length}
+            active={s.surface === "actions"}
+            onClick={() => s.toggleSurface("actions")}
             title="Actions"
           >
             Actions
           </ToolbarButton>
         </ToolbarGroup>
 
-        {participants.length > 0 && (
+        {s.participants.length > 0 && (
           <ToolbarGroup label="Present">
             <span style={{ padding: "0 4px" }}>
-              <AvatarStack people={participants} size={22} />
+              <AvatarStack people={s.participants} size={22} />
             </span>
           </ToolbarGroup>
         )}
       </FloatingToolbar>
 
       <Popover
-        open={open === "threads"}
+        open={s.surface === "threads"}
         anchorRef={threadsRef}
-        onClose={() => setOpen(null)}
-        heading="Threads"
-        minWidth={260}
+        onClose={s.closeSurfaces}
+        heading={`Threads · ${s.openCount} open · ${s.resolvedCount} resolved`}
+        minWidth={300}
       >
-        <PopoverEmpty>
-          No threads yet. Selecting an element or drawing a region will open one.
-        </PopoverEmpty>
+        {s.threads.length === 0 ? (
+          <PopoverEmpty>
+            No threads yet. Selecting an element or drawing a region opens one.
+          </PopoverEmpty>
+        ) : (
+          <>
+            {open.map((t) => (
+              <PopoverRow
+                key={t._id}
+                active={t._id === s.activeThread?._id}
+                hint={timeAgo(t.updatedAt)}
+                onClick={() => s.openThread(t._id)}
+              >
+                {t.title}
+              </PopoverRow>
+            ))}
+            {resolved.map((t) => (
+              <PopoverRow
+                key={t._id}
+                hint={`resolved · ${timeAgo(t.updatedAt)}`}
+                onClick={() => s.openThread(t._id)}
+              >
+                {t.title}
+              </PopoverRow>
+            ))}
+          </>
+        )}
       </Popover>
 
       <Popover
-        open={open === "actions"}
+        open={s.surface === "actions"}
         anchorRef={actionsRef}
-        onClose={() => setOpen(null)}
-        heading="Actions"
-        minWidth={260}
+        onClose={s.closeSurfaces}
+        heading={`Actions · ${s.actions.length}`}
+        minWidth={320}
       >
-        <PopoverEmpty>
-          No actions yet. They are synthesised from a thread.
-        </PopoverEmpty>
+        {s.actions.length === 0 ? (
+          <PopoverEmpty>No actions yet. They are synthesised from a thread.</PopoverEmpty>
+        ) : (
+          s.actions.map((a) => (
+            <PopoverRow key={a._id} hint={a.status} onClick={() => s.openThread(a.threadId)}>
+              {a.title}
+            </PopoverRow>
+          ))
+        )}
       </Popover>
 
-      <SidePanel
-        open={panelOpen}
-        onClose={() => setPanelOpen(false)}
-        onRailClick={() => setPanelOpen((v) => !v)}
-        railLabel="thread"
-        title="No thread selected"
-        subtitle="the conversation surface"
-      >
-        <p
-          style={{
-            font: "400 12.5px/1.55 var(--q-body)",
-            color: "var(--q-muted)",
-            maxWidth: "44ch",
-          }}
-        >
-          A thread opens here when a target is selected on the page: the target
-          summary, the conversation between the agent and the team, and the
-          controls to resolve it or turn it into actions.
-        </p>
-      </SidePanel>
+      <ThreadPanel />
     </OverlayRoot>
   );
 }

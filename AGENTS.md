@@ -27,4 +27,13 @@
 - The root `ConvexClientProvider` is in `src/app/ConvexClientProvider.tsx`.
 - `npx convex run seed:demo` idempotently seeds the scripted users and Malbank preview.
 - Keep queries index-backed. Current indexes cover threads by preview/status, messages by thread, actions by preview/thread, and presence by preview/user/activity.
+- `npx convex run seed:resetDemo` clears threads/messages/actions/presence for a clean rehearsal (users and previews stay).
 - Convex docs: https://docs.convex.dev/quickstart/nextjs
+
+## Review overlay & demo
+
+- The review surface is `/demo/playground?review=1`. The overlay mounts through `src/components/quorum/overlay/ReviewMount.tsx` and is driven by the session provider in `ReviewSession.tsx`; the wizard (`WizardConductor.tsx` + `wizard-steps.ts`) drives the same session verbs the UI binds to.
+- Demo keys: `→` next step, `←` back (UI-only steps), `⇧R` reset Convex demo data + reload.
+- Agent answers come from `POST /api/agent` (`src/lib/quorum/agent.ts`); kinds `rationale|playbook|precedent|delay` read `fixtures/`, `external` performs a real Context.dev search (1 credit per run), `actions` synthesizes the two scripted action items.
+- The scripted element target is the AI nudge CTA marked `data-quorum-target="ai-insight-prompt"` in `src/app/demo/playground/page.tsx` — the one review-anchor change to the vendored demo tree.
+- `src/app/demo/**` and `src/components/demo/**` stay vendored otherwise; do not edit or lint them.

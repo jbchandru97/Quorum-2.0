@@ -1,33 +1,23 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { ReviewOverlay } from "./ReviewOverlay";
-import type { Person } from "@/components/quorum/primitives";
+import { ReviewSessionProvider } from "./ReviewSession";
+import { WizardConductor } from "./WizardConductor";
 
 /* ───────────────────────────────────────────────────────────────
    ReviewMount — puts the review chrome over the cloned host app.
 
-   Gated behind `?review=1` for now, so /demo/playground keeps
-   behaving exactly like the app it was cloned from. The case study
-   at /demo/intro embeds the prototype in iframes, and those embeds
+   Gated behind `?review=1`, so /demo/playground keeps behaving
+   exactly like the app it was cloned from. The case study at
+   /demo/intro embeds the prototype in iframes, and those embeds
    must not pick up a floating bar.
 
    The flag is read from `window.location` in an effect rather than
    through `useSearchParams`, because that hook opts every page under
    this layout out of static rendering — a real cost paid by the whole
    demo for one switch that only matters on the client.
-
-   Tomorrow this gate comes off and the overlay becomes the default
-   for the review surface.
    ─────────────────────────────────────────────────────────────── */
-
-/* Seeded from /docs/08-DEMO_DATA.md. Presence is not wired yet; this
-   is what the stack will show once it is. */
-const PARTICIPANTS: Person[] = [
-  { id: "u_maya", name: "Maya", role: "Designer", active: true },
-  { id: "u_rohan", name: "Rohan", role: "PM", active: true },
-  { id: "u_arun", name: "Arun", role: "Engineer", active: true },
-];
 
 /* The URL does not change under the overlay without a navigation
    that remounts it, so the store never has to notify. */
@@ -44,6 +34,19 @@ function readFlag(): boolean {
 export function ReviewMount() {
   const on = useSyncExternalStore(subscribe, readFlag, () => false);
 
+  /* Marks review mode on <html> so review.css can quiet the host
+     app's own tour chrome for the duration. */
+  useEffect(() => {
+    if (!on) return;
+    document.documentElement.setAttribute("data-quorum-review", "1");
+    return () => document.documentElement.removeAttribute("data-quorum-review");
+  }, [on]);
+
   if (!on) return null;
-  return <ReviewOverlay participants={PARTICIPANTS} />;
+  return (
+    <ReviewSessionProvider>
+      <ReviewOverlay />
+      <WizardConductor />
+    </ReviewSessionProvider>
+  );
 }

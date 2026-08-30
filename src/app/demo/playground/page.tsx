@@ -122,6 +122,9 @@ function SpendingSummaryWrapper({ midVisible }: { midVisible: boolean }) {
         flexShrink: 0,
         transition: "max-height 0.5s ease-out 0.15s, opacity 0.5s ease-out 0.15s" }}>
         <button
+          /* Quorum: the scripted demo target. The one review-anchor
+             change to the vendored tree — see fixtures/context/component-map.json. */
+          data-quorum-target="ai-insight-prompt"
           onClick={() => { sessionStorage.setItem("mal-ai-firsttime", "true"); router.push("/demo/playground/assistant"); }}
           style={{
             width: "100%", paddingLeft: 8, paddingRight: 8, paddingTop: 8, paddingBottom: 8,
