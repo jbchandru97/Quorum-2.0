@@ -356,6 +356,28 @@
 
 .q-ws-msg-chips { margin-top: 7px; }
 
+/* Collapsible findings under an agent answer — same shape as the
+   overlay's, on the workspace's light ground. */
+.q-ws-msg .q-findings { margin-top: 7px; border: 1px solid var(--q-rule); }
+.q-ws-msg .q-findings summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 6px 9px;
+  font: 400 10px/1 var(--q-mono);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--q-muted);
+}
+.q-ws-msg .q-findings summary::-webkit-details-marker { display: none; }
+.q-ws-msg .q-findings ul {
+  border-top: 1px solid var(--q-rule);
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.q-ws-msg .q-findings li { font: 400 10.5px/1.5 var(--q-mono); color: var(--q-muted); overflow-wrap: break-word; }
+
 /* ── actions ─────────────────────────────────────────────────── */
 
 .q-ws-action { border: 1px solid var(--q-rule); padding: 12px 14px; }
@@ -364,6 +386,15 @@
 .q-ws-action-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
 .q-ws-action-head b { font: 500 12.5px/1.3 var(--q-body); color: var(--q-ink); }
 .q-ws-action-head span { margin-left: auto; font: 400 9.5px/1 var(--q-mono); color: var(--q-muted); letter-spacing: .05em; text-transform: uppercase; }
+
+.q-ws-action-x {
+  flex: 0 0 auto;
+  font: 400 14px/1 var(--q-body);
+  color: var(--q-muted);
+  padding: 0 4px;
+  transition: color var(--q-t-fast) var(--q-ease);
+}
+.q-ws-action-x:hover { color: var(--q-ink); }
 
 .q-ws-action > p { font: 400 12px/1.5 var(--q-body); color: var(--q-muted); }
 

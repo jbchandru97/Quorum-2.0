@@ -119,6 +119,38 @@ export default defineSchema({
       }),
     ),
     sources: v.optional(v.array(messageSource)),
+    /* Collapsible supporting evidence: shown folded under the
+       answer, so uncertain findings never masquerade as the verdict. */
+    findings: v.optional(
+      v.object({
+        title: v.string(),
+        items: v.array(v.string()),
+      }),
+    ),
+    /* One-tap follow-through when the agent recommends a human:
+       "Ask Arun" sends the tag + question without retyping. */
+    suggestion: v.optional(
+      v.object({
+        name: v.string(),
+        question: v.string(),
+      }),
+    ),
+    /* A structured review assessment: criterion cards with status
+       tags. Failing checks carry a suggested action title. */
+    assessment: v.optional(
+      v.array(
+        v.object({
+          criterion: v.string(),
+          status: v.union(
+            v.literal("pass"),
+            v.literal("needs_review"),
+            v.literal("unassessed"),
+          ),
+          note: v.string(),
+          action: v.optional(v.string()),
+        }),
+      ),
+    ),
     createdAt: v.number(),
   }).index("by_thread", ["threadId"]),
 

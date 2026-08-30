@@ -103,6 +103,18 @@ function Conversation({
             {m.content.split("\n").map((line, i) => (
               <p key={i}>{line}</p>
             ))}
+            {m.findings && m.findings.items.length > 0 && (
+              <details className="q-findings">
+                <summary>
+                  {m.findings.title} · {m.findings.items.length}
+                </summary>
+                <ul>
+                  {m.findings.items.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
             {m.sources && m.sources.length > 0 && (
               <div className="q-ws-msg-chips">
                 <SourceChips>
@@ -138,6 +150,7 @@ export default function ThreadsPage() {
     useQuery(api.threads.listByPreview, preview ? { previewId: preview._id } : "skip") ?? [];
   const actions =
     useQuery(api.actions.listByPreview, preview ? { previewId: preview._id } : "skip") ?? [];
+  const removeAction = useMutation(api.actions.remove);
 
   const setThreadStatus = useMutation(api.threads.setStatus);
   const setActionStatus = useMutation(api.actions.setStatus);
@@ -426,6 +439,15 @@ export default function ThreadsPage() {
                         <div className="q-ws-action-head">
                           <b>{a.title}</b>
                           <span>{a.status}</span>
+                          <button
+                            type="button"
+                            className="q-ws-action-x"
+                            onClick={() => void removeAction({ actionId: a._id })}
+                            aria-label={`Remove action: ${a.title}`}
+                            title="Remove this action"
+                          >
+                            ×
+                          </button>
                         </div>
                         <p>{a.summary}</p>
                         <dl>

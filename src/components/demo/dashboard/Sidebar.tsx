@@ -399,6 +399,9 @@ function MalNavItem({ active = false, isOnDashboard = false, collapsed = false }
 
   return (
     <button
+      /* Quorum: review anchor for the scripted demo — see
+         fixtures/context/component-map.json. */
+      data-quorum-target="ai-assistant-tab"
       onClick={() => router.push("/demo/playground/assistant")}
       style={{
         display: "flex", alignItems: "center", gap: 8,

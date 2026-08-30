@@ -2,19 +2,18 @@ import { DEMO_USERS, SCRIPT } from "@/lib/quorum/demo-script";
 import type { ReviewSessionValue } from "./ReviewSession";
 
 /* ───────────────────────────────────────────────────────────────
-   The demo conductor's step registry, from /docs/09-DEMO_WIZARD.md.
+   The demo conductor's step registry.
 
-   Every step drives the same session verbs the visible UI binds to,
-   so advancing triggers real behaviour — messages animate in, the
-   agent thinks, Convex writes happen — never a screen swap.
+   The story runs deep, then wide. One thread on the AI nudge takes
+   the full journey — documented rationale, the PM's lived context,
+   the usability review with an inline action, the Amplitude
+   precedent. Then breadth: the new Aql AI tab goes to the live web
+   through Context.dev, and the Total Income card carries the
+   engineering scope conversation to resolution, a synthesized
+   backlog action, and the Devin hand-off.
 
-   The agent is summoned by the product's own routing now: an
-   untagged question from the reviewer answers itself, a tagged
-   teammate owns the reply. Each question step therefore carries its
-   answer, and the wizard only supplies the human side.
-
-   Step 6 performs the REAL Context.dev request. If it fails the
-   agent posts an honest failure message and the demo can move on.
+   Every step drives the same session verbs the visible UI binds to
+   — messages animate in, the agent thinks, Convex writes happen.
    ─────────────────────────────────────────────────────────────── */
 
 export type WizardCtx = {
@@ -34,10 +33,11 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 export const WIZARD_STEPS: WizardStep[] = [
   {
-    id: "calm",
-    label: "calm start",
+    id: "open",
+    label: "open Quorum",
     run: async ({ session }) => {
-      session.setMode("flow");
+      session.expand();
+      session.setMode("move");
       session.closeSurfaces();
       /* The other two participants come online — written through
          the same Convex presence path a second window would use. */
@@ -47,13 +47,11 @@ export const WIZARD_STEPS: WizardStep[] = [
   },
   {
     id: "rationale",
-    label: "select · ask rationale",
+    label: "nudge · why is this here?",
     run: async ({ session }) => {
-      /* Pick up the instrument first, so the audience sees the mode
-         change before the ring lands on the target. */
-      session.setMode("inspect");
+      session.setMode("select");
       await sleep(500);
-      if (!session.selectPrimaryTarget()) return;
+      if (!session.selectTargetByKey("ai-insight-prompt")) return;
       await sleep(700);
       /* Untagged question → the agent answers from the rationale. */
       await session.typeAndSendAsDesigner(SCRIPT.q1Rationale);
@@ -61,71 +59,84 @@ export const WIZARD_STEPS: WizardStep[] = [
     back: ({ session }) => session.closePanel(),
   },
   {
-    id: "playbook",
-    label: "validate · playbook",
+    id: "delay",
+    label: "agent admits · Ask Rohan",
     run: async ({ session }) => {
-      await session.typeAndSendAsDesigner(SCRIPT.q2Playbook);
+      /* Asked to the agent first: it finds the delay in the code
+         but no written rationale, and suggests the PM. The Ask bar
+         under its answer does the tagging — one tap, no retyping —
+         and the PM replies through the same Convex path. */
+      await session.typeAndSendAsDesigner(SCRIPT.qDelay);
+      await sleep(1100);
+      await session.askSuggestedHuman();
+      await sleep(2400);
+    },
+  },
+  {
+    id: "playbook",
+    label: "usability review · cards",
+    run: async ({ session }) => {
+      await session.typeAndSendAsDesigner(SCRIPT.qPlaybook);
+    },
+  },
+  {
+    id: "inline-action",
+    label: "failing check → action",
+    run: async ({ session }) => {
+      /* The needs-review card becomes an action item, inline. */
+      await session.captureFailingCheck();
     },
   },
   {
     id: "precedent",
-    label: "evidence · precedent",
+    label: "Amplitude · precedent",
     run: async ({ session }) => {
-      await session.typeAndSendAsDesigner(SCRIPT.q3Precedent);
+      await session.typeAndSendAsDesigner(SCRIPT.qPrecedent);
     },
   },
   {
-    id: "unknown",
-    label: "agent admits · tag PM",
+    id: "tab-external",
+    label: "Aql tab · Context.dev live",
     run: async ({ session }) => {
-      await session.typeAndSendAsDesigner(SCRIPT.q4Delay);
-      await sleep(600);
-      /* Tagging Rohan hands the thread to a human — no agent. */
-      await session.typeAndSendAsDesigner(SCRIPT.tagPm);
-    },
-  },
-  {
-    id: "pm-reply",
-    label: "PM replies (realtime)",
-    run: async ({ session }) => {
-      await sleep(900);
-      await session.sendAs(DEMO_USERS.pm, SCRIPT.pmDelayReply);
-    },
-  },
-  {
-    id: "external",
-    label: "Context.dev · live",
-    run: async ({ session }) => {
-      await session.typeAndSendAsDesigner(SCRIPT.q5External);
-    },
-  },
-  {
-    id: "scope",
-    label: "scope discussion",
-    run: async ({ session }) => {
-      await session.typeAndSendAsDesigner(SCRIPT.proposal);
+      session.closePanel();
+      await sleep(400);
+      session.setMode("select");
+      await sleep(500);
+      if (!session.selectTargetByKey("ai-assistant-tab")) return;
       await sleep(700);
-      await session.sendAs(DEMO_USERS.pm, SCRIPT.pmAsksEngineer);
-      await sleep(1100);
-      await session.sendAs(DEMO_USERS.engineer, SCRIPT.engineerScope);
-      await sleep(1100);
-      await session.sendAs(DEMO_USERS.pm, SCRIPT.pmTimeline);
-      await sleep(900);
-      await session.sendAs(DEMO_USERS.engineer, SCRIPT.engineerPlan);
+      /* Identifies comparable products, scrapes them — all live. */
+      await session.typeAndSendAsDesigner(SCRIPT.qTabExternal);
     },
   },
   {
-    id: "actions",
-    label: "actions + resolve",
+    id: "income-scope",
+    label: "income card · eng scope",
     run: async ({ session }) => {
-      await session.addToActions();
-      await sleep(800);
+      session.closePanel();
+      await sleep(400);
+      session.setMode("select");
+      await sleep(500);
+      if (!session.selectTargetByKey("income-card")) return;
+      await sleep(700);
+      /* One tagged question plays the whole handoff: engineer →
+         PM (deadline) → engineer (backlog), simulated teammates
+         chaining through the same Convex path. */
+      await session.typeAndSendAsDesigner(SCRIPT.qIncomeToEngineer);
+      await sleep(6800);
+    },
+  },
+  {
+    id: "resolve",
+    label: "resolve · summary + action",
+    run: async ({ session }) => {
+      /* Marked resolved first (system line records by whom), then
+         the agent generates the summary and the backlog action. */
       await session.resolveActiveThread();
     },
   },
   {
-    id: "actions-list",
-    label: "show actions",
+    id: "devin",
+    label: "actions tray · Devin",
     run: async ({ session }) => {
       session.openSurface("actions");
     },

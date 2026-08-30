@@ -61,6 +61,32 @@ export const create = mutation({
       }),
     ),
     sources: v.optional(v.array(messageSource)),
+    findings: v.optional(
+      v.object({
+        title: v.string(),
+        items: v.array(v.string()),
+      }),
+    ),
+    suggestion: v.optional(
+      v.object({
+        name: v.string(),
+        question: v.string(),
+      }),
+    ),
+    assessment: v.optional(
+      v.array(
+        v.object({
+          criterion: v.string(),
+          status: v.union(
+            v.literal("pass"),
+            v.literal("needs_review"),
+            v.literal("unassessed"),
+          ),
+          note: v.string(),
+          action: v.optional(v.string()),
+        }),
+      ),
+    ),
   },
   handler: async ({ db }, args) => {
     const thread = await db.get(args.threadId);

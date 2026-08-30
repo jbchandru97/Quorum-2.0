@@ -31,20 +31,44 @@ export type AgentActionPayload = {
 };
 
 export type AgentAnswer = {
+  /** The direct answer: a verdict, never a dump of search output. */
   content: string;
   sources: AgentSource[];
   actions?: AgentActionPayload[];
+  /** Supporting evidence, rendered collapsed under the answer. */
+  findings?: { title: string; items: string[] };
+  /** When the agent recommends a human, a one-tap follow-through. */
+  suggestion?: { name: string; question: string };
+  /** A structured review: criterion cards with status tags. */
+  assessment?: AssessmentItem[];
+};
+
+export type AssessmentItem = {
+  criterion: string;
+  status: "pass" | "needs_review" | "unassessed";
+  note: string;
+  /** Suggested action title for a failing check. */
+  action?: string;
+};
+
+/** What the reviewer actually has selected, sent with a question so
+    the agent answers about the thing, not in the abstract. */
+export type AgentTarget = {
+  key?: string | null;
+  label?: string;
+  selector?: string;
+  breadcrumb?: string[];
 };
 
 /* Only the steps relevant to each request, per /docs/06. */
 export const AGENT_STEP_LABELS: Record<AgentKind, string[]> = {
-  rationale: ["Checking product context", "Composing answer"],
+  rationale: ["Searching the codebase", "Checking product context", "Composing answer"],
   playbook: ["Checking design review guidance", "Composing answer"],
   precedent: ["Checking precedent metrics", "Composing answer"],
-  delay: ["Checking product context", "Checking design review guidance", "Composing answer"],
-  external: ["Checking product context", "Fetching external reference", "Composing answer"],
-  unknown: ["Checking product context", "Checking design review guidance", "Composing answer"],
-  actions: ["Reading thread discussion", "Synthesizing actions"],
+  delay: ["Searching the codebase", "Checking product context", "Composing answer"],
+  external: ["Identifying comparable products", "Scraping the top pages", "Composing answer"],
+  unknown: ["Searching the codebase", "Checking design review guidance", "Composing answer"],
+  actions: ["Reading thread discussion", "Summarizing decisions", "Creating action items"],
 };
 
 /* ── question routing ─────────────────────────────────────────────
@@ -63,8 +87,8 @@ export function classifyQuestion(question: string): Exclude<AgentKind, "actions"
   if (/\b(delay|debounce|why (does|do|is|it) .*(wait|later)|immediately|after a (pause|moment)|timing)\b/.test(q))
     return "delay";
 
-  /* Seeded analytics precedent: performance and metrics. */
-  if (/\b(perform(ed|ance|s)?|engagement|metrics?|analytics?|conversion|click[- ]?through|adoption|usage|how did .+\b(do|land|convert))\b/.test(q))
+  /* Seeded analytics precedent: performance, metrics, prior success. */
+  if (/\b(perform(ed|ance|s)?|engagement|metrics?|analytics?|conversion|click[- ]?through|adoption|usage|success|succeed(ed)?|similar pattern|how did .+\b(do|land|convert))\b/.test(q))
     return "precedent";
 
   /* Internal process: validation against the team's own playbook. */

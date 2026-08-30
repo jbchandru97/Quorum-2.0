@@ -6,7 +6,15 @@ const nextConfig: NextConfig = {
      opaque to the module tracer, so the files are declared here to be
      packed into the deployed output. See readMarkdownFixture(). */
   outputFileTracingIncludes: {
-    "/**": ["./fixtures/**/*.md"],
+    /* The agent's repo search reads these trees from disk at request
+       time (src/lib/quorum/repo-search.ts), and the markdown fixtures
+       are read per-request so they can be edited during a rehearsal. */
+    "/**": [
+      "./fixtures/**/*",
+      "./docs/**/*.md",
+      "./src/app/demo/**/*",
+      "./src/components/demo/**/*",
+    ],
   },
 
   async redirects() {
