@@ -85,14 +85,19 @@ export type ReviewSessionValue = {
   resolvedCount: number;
 
   /* UI state */
+  expanded: boolean;
   mode: "move" | "draw" | "select";
   selection: Selection | null;
   panelOpen: boolean;
+  threadView: "popup" | "panel";
   surface: SurfaceName;
   agentRun: AgentRun | null;
   composerText: string;
 
   /* verbs — the same API for the UI and the wizard */
+  expand: () => void;
+  collapse: () => void;
+  expandThread: () => void;
   setMode: (mode: "move" | "draw" | "select") => void;
   select: (selection: Selection) => void;
   selectPrimaryTarget: () => boolean;
@@ -160,11 +165,14 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
   const resetDemo = useMutation(api.seed.resetDemo);
 
   /* ── UI state ──────────────────────────────────────────────────
-     Move is the default: the host product stays fully usable until
-     the reviewer picks up Draw (region) or Select (element). */
+     Quorum starts folded into a launcher bubble: a viewer opening a
+     review link has not necessarily come to review. Move is the
+     default mode once expanded. */
+  const [expanded, setExpanded] = useState(false);
   const [mode, setMode] = useState<"move" | "draw" | "select">("move");
   const [selection, setSelection] = useState<Selection | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [threadView, setThreadView] = useState<"popup" | "panel">("popup");
   const [surface, setSurface] = useState<SurfaceName>(null);
   const [agentRun, setAgentRun] = useState<AgentRun | null>(null);
   const [composerText, setComposerText] = useState("");
@@ -213,7 +221,9 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     [heartbeat],
   );
 
-  const mayaReady = Boolean(preview && users.some((u) => u.externalId === DEMO_USERS.designer));
+  const mayaReady = Boolean(
+    expanded && preview && users.some((u) => u.externalId === DEMO_USERS.designer),
+  );
   useEffect(() => {
     if (!mayaReady) return;
     void heartbeatAs(DEMO_USERS.designer);
@@ -226,6 +236,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     setSelection(sel);
     setActiveThreadId(null);
     setPanelOpen(true);
+    setThreadView("popup");
     setSurface(null);
     /* A committed target hands the pointer back to the product. */
     setMode("move");
@@ -251,6 +262,7 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     setActiveThreadId(id);
     setSelection(null);
     setPanelOpen(true);
+    setThreadView("popup");
     setSurface(null);
   }, []);
 
@@ -601,6 +613,16 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     [users, liveUserIds],
   );
 
+  const expand = useCallback(() => setExpanded(true), []);
+  const collapse = useCallback(() => {
+    setExpanded(false);
+    setMode("move");
+    setPanelOpen(false);
+    setSurface(null);
+    setSelection(null);
+  }, []);
+  const expandThread = useCallback(() => setThreadView("panel"), []);
+
   const value: ReviewSessionValue = {
     preview,
     users,
@@ -614,13 +636,18 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     openCount,
     resolvedCount,
 
+    expanded,
     mode,
     selection,
     panelOpen,
+    threadView,
     surface,
     agentRun,
     composerText,
 
+    expand,
+    collapse,
+    expandThread,
     setMode,
     select,
     selectPrimaryTarget,

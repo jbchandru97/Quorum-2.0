@@ -35,8 +35,11 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 export const WIZARD_STEPS: WizardStep[] = [
   {
     id: "calm",
-    label: "calm start",
+    label: "open Quorum",
     run: async ({ session }) => {
+      /* The review link starts as a quiet launcher bubble; the demo
+         begins by opening the instrument. */
+      session.expand();
       session.setMode("move");
       session.closeSurfaces();
       /* The other two participants come online — written through

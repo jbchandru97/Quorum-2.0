@@ -33,7 +33,9 @@
 ## Review overlay & demo
 
 - The review surface is `/demo/playground?review=1`. The overlay mounts through `src/components/quorum/overlay/ReviewMount.tsx` and is driven by the session provider in `ReviewSession.tsx`; the wizard (`WizardConductor.tsx` + `wizard-steps.ts`) drives the same session verbs the UI binds to.
+- The overlay starts folded into a launcher bubble (bottom-left); clicking it expands the tool, and the dock's `×` folds it back. The wizard's step 1 expands it.
 - Overlay modes: `Move` (default — the host product stays fully usable), `Draw` (sweep a box over an area to comment on it), `Select` (inspect and pick an element). `Esc` returns to Move; committing a target auto-returns to Move.
+- Threads open popup-first: an anchored dialog beside the bubble/selection (side chosen by available space, max-height + scroll, `ThreadPopup.tsx`); its header expand control promotes it to the pinned side panel (`ThreadPanel.tsx`). Shared conversation body lives in `ThreadContent.tsx`.
 - The control dialog is dockable: drag its grip handle; dropping in the left quarter of the screen docks it vertically in the bottom-left corner, anywhere else returns it to the bottom centre. Threads/Actions open as a flush same-width extension of the dialog (`ReviewDock.tsx`), not detached popovers.
 - Overlay chrome (toolbar, panel, popovers, markers, wizard chip) renders with the dark token register from `review.css` so it stands out over the light demo product.
 - Demo keys: `→` next step, `←` back (UI-only steps), `⇧R` or the chip's `↺ reset` button clears Convex demo data + reloads. `Esc` blurs the composer so the arrows reach the conductor.

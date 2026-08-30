@@ -135,7 +135,17 @@ export function ReviewDock() {
       {s.surface === "threads" && (
         <div className="q-dock-ext" role="region" aria-label="Threads">
           <div className="q-ext-head">
-            threads · {s.openCount} open · {s.resolvedCount} resolved
+            <span>
+              threads · {s.openCount} open · {s.resolvedCount} resolved
+            </span>
+            <button
+              type="button"
+              className="q-ext-x"
+              onClick={s.closeSurfaces}
+              aria-label="Close threads"
+            >
+              ×
+            </button>
           </div>
           {s.threads.length === 0 ? (
             <p className="q-ext-empty">
@@ -171,7 +181,17 @@ export function ReviewDock() {
       )}
       {s.surface === "actions" && (
         <div className="q-dock-ext" role="region" aria-label="Actions">
-          <div className="q-ext-head">actions · {s.actions.length}</div>
+          <div className="q-ext-head">
+            <span>actions · {s.actions.length}</span>
+            <button
+              type="button"
+              className="q-ext-x"
+              onClick={s.closeSurfaces}
+              aria-label="Close actions"
+            >
+              ×
+            </button>
+          </div>
           {s.actions.length === 0 ? (
             <p className="q-ext-empty">No actions yet. They are synthesised from a thread.</p>
           ) : (
@@ -269,6 +289,18 @@ export function ReviewDock() {
             <AvatarStack people={s.participants} size={22} />
           </div>
         )}
+
+        <div className="q-dock-group">
+          <button
+            type="button"
+            className="q-dock-x"
+            onClick={s.collapse}
+            title="Close Quorum — back to the launcher bubble"
+            aria-label="Close Quorum review"
+          >
+            ×
+          </button>
+        </div>
       </div>
     </div>
   );
