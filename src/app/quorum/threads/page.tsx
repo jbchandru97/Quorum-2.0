@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
@@ -206,6 +206,32 @@ export default function ThreadsPage() {
     matches,
   );
 
+  /* Arriving from the walkthrough (?thread=) — or cold — the AI
+     insight nudge thread starts selected, so the conversation and
+     its action items are already on screen. One-shot. */
+  const preselected = useRef(false);
+  useEffect(() => {
+    if (preselected.current || threads.length === 0) return;
+    preselected.current = true;
+    const param = new URLSearchParams(window.location.search).get("thread");
+    const byParam = param ? threads.find((t) => t._id === param) : undefined;
+    const nudge = threads.find(
+      (t) =>
+        t.anchorData.type === "element" &&
+        t.anchorData.selector.includes("ai-insight-prompt"),
+    );
+    const pick = byParam ?? nudge;
+    if (pick) {
+      const timer = setTimeout(() => setExpanded(pick._id), 0);
+      return () => clearTimeout(timer);
+    }
+  }, [threads]);
+
+  const selectedThread = threads.find((t) => t._id === expanded) ?? null;
+  const selectedActions = selectedThread
+    ? actions.filter((a) => a.threadId === selectedThread._id)
+    : [];
+
   return (
     <>
       <header className="q-ws-head">
@@ -213,7 +239,22 @@ export default function ThreadsPage() {
           <h1 className="q-ws-h1">Threads</h1>
           <p className="q-ws-head-sub">Every decision, with its reasoning, in one place.</p>
         </div>
-        <span className="q-ws-head-note">live · Convex</span>
+        <span className="q-ws-head-stats">
+          <span className="q-ws-stats is-compact">
+            <span className="q-ws-stat">
+              <b>{open.length}</b>
+              <span>open</span>
+            </span>
+            <span className="q-ws-stat">
+              <b>{resolved.length}</b>
+              <span>resolved</span>
+            </span>
+            <span className="q-ws-stat">
+              <b>{actions.length}</b>
+              <span>actions</span>
+            </span>
+          </span>
+        </span>
         <span className="q-ws-head-presence">
           <AvatarStack people={participants} size={22} />
         </span>
@@ -221,9 +262,9 @@ export default function ThreadsPage() {
 
       <div className="q-ws-cols">
         {/* ── left: the review and its threads ─────────────────── */}
-        <section className="q-ws-col" aria-label="Reviews">
+        <section className="q-ws-col" aria-label="Threads">
           <div className="q-ws-col-head">
-            <span className="q-ws-col-t">Reviews</span>
+            <span className="q-ws-col-t">Threads</span>
             <div className="q-ws-filters" role="group" aria-label="Filter threads">
               {FILTERS.map((f) => (
                 <button
@@ -257,21 +298,6 @@ export default function ThreadsPage() {
               </div>
             ) : (
               <>
-                <div className="q-ws-row is-on" aria-current="true">
-                  <span className="q-ws-row-t">{preview.name}</span>
-                  <span className="q-ws-row-url">{preview.url}</span>
-                  <div className="q-ws-row-meta">
-                    <span className="q-ws-open">{open.length} open</span>
-                    <span className="q-ws-sep">·</span>
-                    <span>{resolved.length} resolved</span>
-                    <span className="q-ws-sep">·</span>
-                    <span>{actions.length} actions</span>
-                    <span style={{ marginLeft: "auto" }}>
-                      <AvatarStack people={participants} size={20} showPresence={false} />
-                    </span>
-                  </div>
-                </div>
-
                 {filter !== "Actions" &&
                   listedThreads.map((t) => (
                     <button
@@ -319,7 +345,14 @@ export default function ThreadsPage() {
                     </div>
                   ) : (
                     actions.map((a) => (
-                      <div key={a._id} className="q-ws-row">
+                      <button
+                        key={a._id}
+                        type="button"
+                        className={`q-ws-row${expanded === a.threadId ? " is-on" : ""}`}
+                        onClick={() =>
+                          setExpanded((cur) => (cur === a.threadId ? null : a.threadId))
+                        }
+                      >
                         <span className="q-ws-row-t">{a.title}</span>
                         <span className="q-ws-row-url">{a.targetDescription}</span>
                         <div className="q-ws-row-meta">
@@ -328,7 +361,7 @@ export default function ThreadsPage() {
                           </span>
                           <span style={{ marginLeft: "auto" }}>{timeAgo(a.createdAt)}</span>
                         </div>
-                      </div>
+                      </button>
                     ))
                   ))}
               </>
@@ -336,102 +369,62 @@ export default function ThreadsPage() {
           </div>
         </section>
 
-        {/* ── right: the selected review in detail ─────────────── */}
-        <section className="q-ws-col" aria-label="Review detail">
+        {/* ── right: the selected thread, alone ─────────────────── */}
+        <section className="q-ws-col" aria-label="Thread detail">
           <div className="q-ws-col-body">
-            {preview && (
+            {preview && selectedThread && (
               <div className="q-ws-detail">
-                <div className="q-ws-detail-head">
-                  <div>
-                    <h2 className="q-ws-detail-t">{preview.name}</h2>
-                    <Link className="q-ws-detail-url" href={`${preview.url}?review=1`}>
-                      {preview.url}
-                      <ExternalIcon />
-                    </Link>
-                  </div>
-                  <div className="q-ws-detail-side">
-                    <div className="q-ws-stats">
-                      <div className="q-ws-stat">
-                        <b>{open.length}</b>
-                        <span>open</span>
-                      </div>
-                      <div className="q-ws-stat">
-                        <b>{resolved.length}</b>
-                        <span>resolved</span>
-                      </div>
-                      <div className="q-ws-stat">
-                        <b>{actions.length}</b>
-                        <span>actions</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="q-ws-section">
-                  <div className="q-ws-section-h is-plain">Threads</div>
-                  {threads.length === 0 ? (
-                    <p className="q-ws-empty-s">
-                      Threads land here as the review at <code>{preview.url}</code> happens.
-                    </p>
-                  ) : (
-                    threads.map((t) => (
-                      <div
-                        key={t._id}
-                        className={`q-ws-thread${expanded === t._id ? " is-on" : ""}${t.status === "resolved" ? " is-resolved" : ""}`}
+                <div
+                  className={`q-ws-thread is-on${selectedThread.status === "resolved" ? " is-resolved" : ""}`}
+                >
+                  <div className="q-ws-thread-row">
+                    <button
+                      type="button"
+                      className="q-ws-thread-head"
+                      aria-expanded={true}
+                      onClick={() => setExpanded(null)}
+                    >
+                      <span
+                        className={`q-ws-dot${selectedThread.status === "open" ? " is-open" : ""}`}
+                      />
+                      <span className="q-ws-thread-t">{selectedThread.title}</span>
+                    </button>
+                    <span className="q-ws-thread-actions">
+                      <button
+                        type="button"
+                        className="q-ws-btn"
+                        onClick={() =>
+                          void setThreadStatus({
+                            threadId: selectedThread._id,
+                            status: selectedThread.status === "open" ? "resolved" : "open",
+                          })
+                        }
                       >
-                        <div className="q-ws-thread-row">
-                          <button
-                            type="button"
-                            className="q-ws-thread-head"
-                            aria-expanded={expanded === t._id}
-                            onClick={() => setExpanded((cur) => (cur === t._id ? null : t._id))}
-                          >
-                            <span className={`q-ws-dot${t.status === "open" ? " is-open" : ""}`} />
-                            <span className="q-ws-thread-t">{t.title}</span>
-                          </button>
-                          {expanded === t._id && (
-                            <span className="q-ws-thread-actions">
-                              <button
-                                type="button"
-                                className="q-ws-btn"
-                                onClick={() =>
-                                  void setThreadStatus({
-                                    threadId: t._id,
-                                    status: t.status === "open" ? "resolved" : "open",
-                                  })
-                                }
-                              >
-                                {t.status === "open" ? "Resolve" : "Reopen"}
-                              </button>
-                              <Link
-                                className="q-ws-btn is-primary"
-                                href={`${preview.url}?review=1&thread=${t._id}`}
-                              >
-                                Open in review <ExternalIcon />
-                              </Link>
-                            </span>
-                          )}
-                          <span className="q-ws-thread-meta">
-                            <span className={`q-ws-status${t.status === "open" ? " is-open" : ""}`}>
-                              {t.status}
-                            </span>
-                            {t.actionCount} actions · {timeAgo(t.updatedAt)}
-                          </span>
-                        </div>
-                        {expanded === t._id && <Conversation threadId={t._id} users={users} />}
-                      </div>
-                    ))
-                  )}
+                        {selectedThread.status === "open" ? "Resolve" : "Reopen"}
+                      </button>
+                      <Link
+                        className="q-ws-btn is-primary"
+                        href={`${preview.url}?review=1&thread=${selectedThread._id}`}
+                      >
+                        Open in review <ExternalIcon />
+                      </Link>
+                    </span>
+                    <span className="q-ws-thread-meta">
+                      <span
+                        className={`q-ws-status${selectedThread.status === "open" ? " is-open" : ""}`}
+                      >
+                        {selectedThread.status}
+                      </span>
+                      {selectedThread.actionCount} actions · {timeAgo(selectedThread.updatedAt)}
+                    </span>
+                  </div>
+                  <Conversation threadId={selectedThread._id} users={users} />
                 </div>
 
-                <div className="q-ws-section">
-                  <div className="q-ws-section-h is-plain">Actions</div>
-                  {actions.length === 0 ? (
-                    <p className="q-ws-empty-s">
-                      Created from thread discussions with <code>Add to actions</code>.
-                    </p>
-                  ) : (
-                    actions.map((a) => (
+                {selectedActions.length > 0 && (
+                  <div className="q-ws-section">
+                    <div className="q-ws-section-h is-plain">Actions from this thread</div>
+                    {selectedActions.map((a) => (
                       <div
                         key={a._id}
                         className={`q-ws-action${a.status === "done" ? " is-done" : ""}`}
@@ -479,18 +472,11 @@ export default function ThreadsPage() {
                           >
                             {a.status === "done" ? "Reopen" : "Mark done"}
                           </button>
-                          <button
-                            type="button"
-                            className="q-ws-btn"
-                            onClick={() => setExpanded(a.threadId)}
-                          >
-                            View thread
-                          </button>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

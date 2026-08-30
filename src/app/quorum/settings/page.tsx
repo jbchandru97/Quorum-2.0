@@ -1,4 +1,4 @@
-import { PROVENANCE_LEGEND, PROVENANCE_ORDER, SourceChip } from "@/components/quorum/primitives";
+ import { PROVENANCE_LEGEND, PROVENANCE_ORDER, SourceChip } from "@/components/quorum/primitives";
 import type { Provenance } from "@/components/quorum/primitives";
 
 /* A reference surface, per /docs/01-FEATURES.md §13. The one thing
@@ -23,7 +23,6 @@ export default function SettingsPage() {
           <h1 className="q-ws-h1">Settings</h1>
           <p className="q-ws-head-sub">How to read what Quorum shows you.</p>
         </div>
-        <span className="q-ws-head-note">reference</span>
       </header>
 
       <div className="q-ws-detail">

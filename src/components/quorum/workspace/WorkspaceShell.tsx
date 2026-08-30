@@ -42,8 +42,8 @@ function IconSettings() {
 
 const NAV = [
   { href: "/quorum/threads", label: "Threads", icon: IconThreads, tag: undefined },
-  { href: "/quorum/users", label: "Users", icon: IconUsers, tag: "ref" },
-  { href: "/quorum/settings", label: "Settings", icon: IconSettings, tag: "ref" },
+  { href: "/quorum/users", label: "Users", icon: IconUsers, tag: undefined },
+  { href: "/quorum/settings", label: "Settings", icon: IconSettings, tag: undefined },
 ] as const;
 
 export function WorkspaceShell({ children }: { children: React.ReactNode }) {

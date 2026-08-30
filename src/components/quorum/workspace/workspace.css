@@ -414,7 +414,16 @@
 
 /* ── header presence ─────────────────────────────────────────── */
 
-.q-ws-head-presence { margin-left: auto; display: flex; align-items: center; }
+.q-ws-head-presence { display: flex; align-items: center; }
+
+/* Header stats: the same stat artifact, compact, sat left of the
+   presence stack. */
+.q-ws-head-stats { margin-left: auto; display: flex; align-items: center; }
+
+.q-ws-stats.is-compact { display: flex; }
+.q-ws-stats.is-compact .q-ws-stat { padding: 6px 12px; min-width: 64px; }
+.q-ws-stats.is-compact .q-ws-stat b { font-size: 15px; }
+.q-ws-stats.is-compact .q-ws-stat span { margin-top: 4px; font-size: 8.5px; }
 
 /* ── search ──────────────────────────────────────────────────── */
 

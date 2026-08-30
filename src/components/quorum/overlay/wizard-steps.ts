@@ -145,8 +145,15 @@ export const WIZARD_STEPS: WizardStep[] = [
   {
     id: "workspace",
     label: "open workspace",
-    run: async ({ push }) => {
-      push("/quorum/threads");
+    run: async ({ session, push }) => {
+      /* Land with the nudge thread selected, so the conversation
+         and its action items are already on screen. */
+      const nudge = session.threads.find(
+        (t) =>
+          t.anchorData.type === "element" &&
+          t.anchorData.selector.includes("ai-insight-prompt"),
+      );
+      push(nudge ? `/quorum/threads?thread=${nudge._id}` : "/quorum/threads");
     },
   },
 ];

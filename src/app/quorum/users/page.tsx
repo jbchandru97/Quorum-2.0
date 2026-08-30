@@ -59,11 +59,7 @@ export default function UsersPage() {
   return (
     <>
       <header className="q-ws-head">
-        <div>
-          <h1 className="q-ws-h1">Users</h1>
-          <p className="q-ws-head-sub">The cast a review runs with.</p>
-        </div>
-        <span className="q-ws-head-note">reference</span>
+        <h1 className="q-ws-h1">Users</h1>
       </header>
 
       <div className="q-ws-detail">
