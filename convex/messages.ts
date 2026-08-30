@@ -35,6 +35,16 @@ export const listByThread = query({
     db.query("messages").withIndex("by_thread", (q) => q.eq("threadId", threadId)).collect(),
 });
 
+export const lastByThread = query({
+  args: { threadId: v.id("threads") },
+  handler: ({ db }, { threadId }) =>
+    db
+      .query("messages")
+      .withIndex("by_thread", (q) => q.eq("threadId", threadId))
+      .order("desc")
+      .first(),
+});
+
 export const create = mutation({
   args: {
     threadId: v.id("threads"),

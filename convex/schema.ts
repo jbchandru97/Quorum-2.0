@@ -130,7 +130,7 @@ export default defineSchema({
     targetDescription: v.string(),
     scopeNotes: v.string(),
     acceptanceNotes: v.string(),
-    status: v.literal("created"),
+    status: v.union(v.literal("created"), v.literal("done")),
     createdAt: v.number(),
   })
     .index("by_preview", ["previewId"])

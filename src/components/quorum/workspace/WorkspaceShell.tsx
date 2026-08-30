@@ -42,8 +42,8 @@ function IconSettings() {
 
 const NAV = [
   { href: "/quorum/threads", label: "Threads", icon: IconThreads, tag: undefined },
-  { href: "/quorum/users", label: "Users", icon: IconUsers, tag: "visual" },
-  { href: "/quorum/settings", label: "Settings", icon: IconSettings, tag: "visual" },
+  { href: "/quorum/users", label: "Users", icon: IconUsers, tag: "ref" },
+  { href: "/quorum/settings", label: "Settings", icon: IconSettings, tag: "ref" },
 ] as const;
 
 export function WorkspaceShell({ children }: { children: React.ReactNode }) {
@@ -52,10 +52,14 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="q-ws">
       <nav className="q-ws-side" aria-label="Quorum">
-        <div className="q-ws-brand">
+        <Link
+          className="q-ws-brand"
+          href="/demo/playground?review=1"
+          title="Back to the review playground"
+        >
           <QuorumMark size={20} title="Quorum" />
           <span>Quorum</span>
-        </div>
+        </Link>
 
         <div className="q-ws-nav">
           {NAV.map(({ href, label, icon: Icon, tag }) => (

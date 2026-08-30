@@ -46,6 +46,43 @@ function buildSelector(el: Element): string {
 
 const toRect = (r: DOMRect): Rect => ({ x: r.x, y: r.y, width: r.width, height: r.height });
 
+const truncateLabel = (s: string): string => (s.length > 40 ? `${s.slice(0, 37)}…` : s);
+
+const NAMED_ANCESTORS = new Set([
+  "section", "nav", "aside", "main", "header", "footer", "table", "form", "article",
+]);
+
+/** A short human-readable name for a generic element. */
+function describeElement(el: Element): string {
+  const attr =
+    el.getAttribute("aria-label") ??
+    el.getAttribute("title") ??
+    (el instanceof HTMLImageElement ? el.alt : null);
+  if (attr?.trim()) return truncateLabel(attr.trim());
+  const heading = el.querySelector("h1, h2, h3, h4, h5, h6")?.textContent?.trim();
+  if (heading) return truncateLabel(heading.replace(/\s+/g, " "));
+  const text = el.textContent?.trim().replace(/\s+/g, " ");
+  if (text) return truncateLabel(text);
+  return el.tagName.toLowerCase();
+}
+
+/** Readable ancestry for a generic element: up to three named ancestors. */
+function buildBreadcrumb(el: Element): string[] {
+  const crumbs: string[] = [];
+  let cur: Element | null = el.parentElement;
+  while (cur && cur !== document.body && crumbs.length < 3) {
+    const aria = cur.getAttribute("aria-label")?.trim();
+    if (aria || NAMED_ANCESTORS.has(cur.tagName.toLowerCase())) {
+      const heading = cur
+        .querySelector(":scope > h1, :scope > h2, :scope > h3, :scope > h4")
+        ?.textContent?.trim();
+      crumbs.unshift(truncateLabel(aria || heading || cur.tagName.toLowerCase()));
+    }
+    cur = cur.parentElement;
+  }
+  return crumbs;
+}
+
 export function SelectionLayer() {
   const session = useReviewSession();
   const { mode, selection, agentRun, activeThread, panelOpen } = session;
@@ -81,7 +118,7 @@ export function SelectionLayer() {
     const r = generic.getBoundingClientRect();
     if (r.width < 8 || r.height < 8) return null;
     if (r.width * r.height > window.innerWidth * window.innerHeight * 0.5) return null;
-    return { rect: toRect(r), label: generic.tagName.toLowerCase(), el: generic };
+    return { rect: toRect(r), label: describeElement(generic), el: generic };
   }, []);
 
   /* ── inspect mode: one set of capture listeners ─────────────── */
@@ -158,7 +195,7 @@ export function SelectionLayer() {
               kind: "element",
               selector: buildSelector(h.el),
               label: h.label,
-              breadcrumb: [],
+              breadcrumb: buildBreadcrumb(h.el),
               rect: h.rect,
             };
       session.select(sel);

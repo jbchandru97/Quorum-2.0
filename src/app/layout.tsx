@@ -43,7 +43,9 @@ export default function RootLayout({
       lang="en"
       className={`${bricolage.variable} ${inter.variable} ${jetbrains.variable}`}
     >
-      <body>
+      {/* suppressHydrationWarning: browser extensions inject attributes
+          into <body> before React hydrates; that noise is not ours. */}
+      <body suppressHydrationWarning>
         <ConvexClientProvider>{children}</ConvexClientProvider>
       </body>
     </html>

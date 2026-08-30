@@ -1,15 +1,29 @@
-import { PROVENANCE_LEGEND, PROVENANCE_ORDER } from "@/components/quorum/primitives";
+import { PROVENANCE_LEGEND, PROVENANCE_ORDER, SourceChip } from "@/components/quorum/primitives";
+import type { Provenance } from "@/components/quorum/primitives";
 
-/* Visual only, per /docs/01-FEATURES.md §13. The one thing worth
-   putting on it today is the provenance legend, because the marks
-   carry meaning by shape and someone has to be able to look them up. */
+/* A reference surface, per /docs/01-FEATURES.md §13. The one thing
+   worth putting on it today is the provenance legend, because the
+   marks carry meaning by shape and someone has to be able to look
+   them up. */
+
+/* Each legend row shows the mark exactly as it ships in-thread: a
+   real SourceChip, not a lookalike. */
+const EXAMPLE_CHIP: Record<Provenance, { label: string; detail?: string }> = {
+  fetched: { label: "Analytics precedent", detail: "21% vs 9%" },
+  cited: { label: "Product rationale", detail: "product-rationale.md" },
+  inferred: { label: "Agent synthesis", detail: "inferred" },
+  human: { label: "Thread discussion" },
+};
 
 export default function SettingsPage() {
   return (
     <>
       <header className="q-ws-head">
-        <h1 className="q-ws-h1">Settings</h1>
-        <span className="q-ws-head-note">visual only</span>
+        <div>
+          <h1 className="q-ws-h1">Settings</h1>
+          <p className="q-ws-head-sub">How to read what Quorum shows you.</p>
+        </div>
+        <span className="q-ws-head-note">reference</span>
       </header>
 
       <div className="q-ws-detail">
@@ -20,25 +34,19 @@ export default function SettingsPage() {
             distinguished by shape as well as colour, so they still read in
             greyscale and on a washed-out projector.
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 4 }}>
+          <div className="q-ws-legend">
             {PROVENANCE_ORDER.map((kind) => (
-              <div
-                key={kind}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "16px 120px 1fr",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "9px 0",
-                  borderBottom: "1px solid var(--q-rule)",
-                  font: "400 12px/1.4 var(--q-body)",
-                }}
-              >
+              <div key={kind} className="q-ws-legend-row">
                 <span className="q-prov" data-kind={kind} aria-hidden="true" />
-                <span style={{ font: "400 11px/1 var(--q-mono)", color: "var(--q-muted)" }}>
-                  {kind}
+                <span className="q-ws-legend-kind">{kind}</span>
+                <span className="q-ws-legend-desc">{PROVENANCE_LEGEND[kind]}</span>
+                <span className="q-ws-legend-chip">
+                  <SourceChip
+                    label={EXAMPLE_CHIP[kind].label}
+                    detail={EXAMPLE_CHIP[kind].detail}
+                    provenance={kind}
+                  />
                 </span>
-                <span>{PROVENANCE_LEGEND[kind]}</span>
               </div>
             ))}
           </div>

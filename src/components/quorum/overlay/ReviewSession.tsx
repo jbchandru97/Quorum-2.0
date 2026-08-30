@@ -127,15 +127,20 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
   const usersQ = useQuery(api.users.list);
   const users = useMemo(() => usersQ ?? [], [usersQ]);
   const preview = useQuery(api.previews.getByProjectKey, { projectKey: "malbank" }) ?? null;
-  const threads =
-    useQuery(api.threads.listByPreview, preview ? { previewId: preview._id } : "skip") ?? [];
+  const threadsQ = useQuery(
+    api.threads.listByPreview,
+    preview ? { previewId: preview._id } : "skip",
+  );
+  const threads = useMemo(() => threadsQ ?? [], [threadsQ]);
   const actions =
     useQuery(api.actions.listByPreview, preview ? { previewId: preview._id } : "skip") ?? [];
 
   const [activeThreadId, setActiveThreadId] = useState<Id<"threads"> | null>(null);
-  const messages =
-    useQuery(api.messages.listByThread, activeThreadId ? { threadId: activeThreadId } : "skip") ??
-    [];
+  const messagesQ = useQuery(
+    api.messages.listByThread,
+    activeThreadId ? { threadId: activeThreadId } : "skip",
+  );
+  const messages = useMemo(() => messagesQ ?? [], [messagesQ]);
 
   /* Presence: the window slides forward on a timer so stale rows
      age out without any writes. */
@@ -257,6 +262,19 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     setPanelOpen(false);
     setSurface(null);
   }, []);
+
+  /* Deep link: /demo/playground?review=1&thread=<id> opens that
+     thread's panel as soon as the thread list arrives. One-shot. */
+  const deepLinkDone = useRef(false);
+  useEffect(() => {
+    if (deepLinkDone.current || threads.length === 0) return;
+    deepLinkDone.current = true;
+    const wanted = new URLSearchParams(window.location.search).get("thread");
+    const t = wanted ? threads.find((x) => x._id === wanted) : undefined;
+    if (!t) return;
+    const timer = setTimeout(() => openThread(t._id), 0);
+    return () => clearTimeout(timer);
+  }, [threads, openThread]);
 
   /* ── thread + message writes ───────────────────────────────── */
   const ensureThread = useCallback(async (): Promise<Id<"threads"> | null> => {
@@ -490,7 +508,15 @@ export function ReviewSessionProvider({ children }: { children: React.ReactNode 
     await setThreadStatus({ threadId, status: "open" });
   }, [setThreadStatus]);
 
-  const addToActions = useCallback(() => runAgent("actions"), [runAgent]);
+  /* The synthesis reads the thread: the last human question (or
+     message) rides along so the action copy reflects it. */
+  const addToActions = useCallback(() => {
+    const humans = messages.filter((m) => m.authorType === "human");
+    const lastQuestion =
+      [...humans].reverse().find((m) => m.messageKind === "question")?.content ??
+      humans[humans.length - 1]?.content;
+    return runAgent("actions", lastQuestion);
+  }, [runAgent, messages]);
 
   const resetDemoData = useCallback(async () => {
     await resetDemo({});

@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { AvatarStack, SourceChip, SourceChips, type Person } from "@/components/quorum/primitives";
+import { DEMO_USERS } from "@/lib/quorum/demo-script";
 import { timeAgo } from "@/lib/quorum/relative-time";
 
 /* ───────────────────────────────────────────────────────────────
@@ -20,6 +21,9 @@ import { timeAgo } from "@/lib/quorum/relative-time";
 const FILTERS = ["Open", "Resolved", "Actions"] as const;
 type Filter = (typeof FILTERS)[number];
 
+const PRESENCE_WINDOW_MS = 45_000;
+const HEARTBEAT_MS = 20_000;
+
 const ROLE_LABEL: Record<string, string> = {
   pm: "PM",
   designer: "Designer",
@@ -27,12 +31,49 @@ const ROLE_LABEL: Record<string, string> = {
   agent: "Agent",
 };
 
+/* A readable anchor line: breadcrumb when we have one, otherwise
+   the selector with its :nth-of-type noise stripped. */
+function prettyAnchor(t: Doc<"threads">): string {
+  if (t.anchorData.type !== "element") return "region anchor";
+  const crumb = t.anchorData.breadcrumb.join(" › ");
+  if (crumb) return crumb;
+  return t.anchorData.selector
+    .replace(/:nth-of-type\(\d+\)/g, "")
+    .split(">")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(" › ");
+}
+
 function ExternalIcon() {
   return (
     <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" fill="none"
       stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 2H2v6h6V6M6 1.5h2.5V4M8.5 1.5L4.5 5.5" />
     </svg>
+  );
+}
+
+function LastMessage({
+  threadId,
+  users,
+}: {
+  threadId: Id<"threads">;
+  users: Doc<"users">[];
+}) {
+  /* listByThread is already deployed; lastByThread lands with the
+     next backend deploy. Until then, take the tail client-side. */
+  const messages = useQuery(api.messages.listByThread, { threadId });
+  const last = messages?.[messages.length - 1];
+  if (!last) return null;
+  const author =
+    last.authorType === "agent"
+      ? "Quorum"
+      : (users.find((u) => u._id === last.authorUserId)?.name ?? "Teammate");
+  return (
+    <span className="q-ws-row-prev">
+      <b>{author}:</b> {last.content.split("\n")[0]}
+    </span>
   );
 }
 
@@ -87,6 +128,7 @@ function Conversation({
 export default function ThreadsPage() {
   const [filter, setFilter] = useState<Filter>("Open");
   const [expanded, setExpanded] = useState<Id<"threads"> | null>(null);
+  const [search, setSearch] = useState("");
 
   const users = useQuery(api.users.list) ?? [];
   const previews = useQuery(api.previews.list);
@@ -97,20 +139,71 @@ export default function ThreadsPage() {
   const actions =
     useQuery(api.actions.listByPreview, preview ? { previewId: preview._id } : "skip") ?? [];
 
+  const setThreadStatus = useMutation(api.threads.setStatus);
+  const setActionStatus = useMutation(api.actions.setStatus);
+  const heartbeat = useMutation(api.presence.heartbeat);
+
+  /* ── live presence: sliding window + workspace heartbeat ────── */
+  const [presenceSince, setPresenceSince] = useState(() => Date.now() - PRESENCE_WINDOW_MS);
+  useEffect(() => {
+    const iv = setInterval(() => setPresenceSince(Date.now() - PRESENCE_WINDOW_MS), 15_000);
+    return () => clearInterval(iv);
+  }, []);
+  const presence =
+    useQuery(
+      api.presence.listActive,
+      preview ? { previewId: preview._id, activeSince: presenceSince } : "skip",
+    ) ?? [];
+
+  const previewId = preview?._id;
+  const viewerId = users.find((u) => u.externalId === DEMO_USERS.designer)?._id;
+  useEffect(() => {
+    if (!previewId || !viewerId) return;
+    const beat = () =>
+      void heartbeat({
+        previewId,
+        userId: viewerId,
+        surface: "workspace",
+        currentRoute: "/quorum/threads",
+      });
+    beat();
+    const iv = setInterval(beat, HEARTBEAT_MS);
+    return () => clearInterval(iv);
+  }, [previewId, viewerId, heartbeat]);
+
+  const liveUserIds = new Set(presence.map((p) => p.userId));
+
   const open = threads.filter((t) => t.status === "open");
   const resolved = threads.filter((t) => t.status === "resolved");
 
   const participants: Person[] = users
     .filter((u) => u.role !== "agent")
-    .map((u) => ({ id: u.externalId, name: u.name, role: ROLE_LABEL[u.role], active: u.isActive }));
+    .map((u) => ({
+      id: u.externalId,
+      name: u.name,
+      role: ROLE_LABEL[u.role],
+      active: liveUserIds.has(u._id),
+    }));
 
-  const listedThreads = filter === "Open" ? open : filter === "Resolved" ? resolved : [];
+  const q = search.trim().toLowerCase();
+  const matches = (t: Doc<"threads">) =>
+    !q || t.title.toLowerCase().includes(q) || prettyAnchor(t).toLowerCase().includes(q);
+
+  const listedThreads = (filter === "Open" ? open : filter === "Resolved" ? resolved : []).filter(
+    matches,
+  );
 
   return (
     <>
       <header className="q-ws-head">
-        <h1 className="q-ws-h1">Threads</h1>
+        <div>
+          <h1 className="q-ws-h1">Threads</h1>
+          <p className="q-ws-head-sub">Every decision, with its reasoning, in one place.</p>
+        </div>
         <span className="q-ws-head-note">live · Convex</span>
+        <span className="q-ws-head-presence">
+          <AvatarStack people={participants} size={22} />
+        </span>
       </header>
 
       <div className="q-ws-cols">
@@ -131,6 +224,17 @@ export default function ThreadsPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="q-ws-search-row">
+            <input
+              type="search"
+              className="q-ws-search"
+              placeholder="Search threads…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Search threads"
+            />
           </div>
 
           <div className="q-ws-col-body">
@@ -160,17 +264,14 @@ export default function ThreadsPage() {
                     <button
                       key={t._id}
                       type="button"
-                      className={`q-ws-row${expanded === t._id ? " is-on" : ""}`}
+                      className={`q-ws-row${expanded === t._id ? " is-on" : ""}${t.status === "resolved" ? " is-resolved" : ""}`}
                       onClick={() => setExpanded((cur) => (cur === t._id ? null : t._id))}
                     >
                       <span className="q-ws-row-t">{t.title}</span>
-                      <span className="q-ws-row-url">
-                        {t.anchorType === "element" && t.anchorData.type === "element"
-                          ? t.anchorData.breadcrumb.join(" / ") || t.anchorData.selector
-                          : "region anchor"}
-                      </span>
+                      <span className="q-ws-row-url">{prettyAnchor(t)}</span>
+                      <LastMessage threadId={t._id} users={users} />
                       <div className="q-ws-row-meta">
-                        <span className={t.status === "open" ? "q-ws-open" : undefined}>
+                        <span className={`q-ws-status${t.status === "open" ? " is-open" : ""}`}>
                           {t.status}
                         </span>
                         <span className="q-ws-sep">·</span>
@@ -183,8 +284,14 @@ export default function ThreadsPage() {
                 {filter !== "Actions" && listedThreads.length === 0 && (
                   <div className="q-ws-empty">
                     <p className="q-ws-empty-s">
-                      No {filter.toLowerCase()} threads yet. Open the review at{" "}
-                      <code>/demo/playground?review=1</code> and select an element.
+                      {q ? (
+                        <>No threads match “{search.trim()}”.</>
+                      ) : (
+                        <>
+                          No {filter.toLowerCase()} threads yet. Open the review at{" "}
+                          <code>/demo/playground?review=1</code> and select an element.
+                        </>
+                      )}
                     </p>
                   </div>
                 )}
@@ -203,7 +310,9 @@ export default function ThreadsPage() {
                         <span className="q-ws-row-t">{a.title}</span>
                         <span className="q-ws-row-url">{a.targetDescription}</span>
                         <div className="q-ws-row-meta">
-                          <span>{a.status}</span>
+                          <span className={a.status === "done" ? undefined : "q-ws-open"}>
+                            {a.status}
+                          </span>
                           <span style={{ marginLeft: "auto" }}>{timeAgo(a.createdAt)}</span>
                         </div>
                       </div>
@@ -216,10 +325,6 @@ export default function ThreadsPage() {
 
         {/* ── right: the selected review in detail ─────────────── */}
         <section className="q-ws-col" aria-label="Review detail">
-          <div className="q-ws-col-head">
-            <span className="q-ws-col-t">Review</span>
-          </div>
-
           <div className="q-ws-col-body">
             {preview && (
               <div className="q-ws-detail">
@@ -250,26 +355,56 @@ export default function ThreadsPage() {
                 </div>
 
                 <div className="q-ws-section">
-                  <div className="q-ws-section-h">Threads</div>
+                  <div className="q-ws-section-h is-plain">Threads</div>
                   {threads.length === 0 ? (
                     <p className="q-ws-empty-s">
                       Threads land here as the review at <code>{preview.url}</code> happens.
                     </p>
                   ) : (
                     threads.map((t) => (
-                      <div key={t._id} className="q-ws-thread">
-                        <button
-                          type="button"
-                          className="q-ws-thread-head"
-                          aria-expanded={expanded === t._id}
-                          onClick={() => setExpanded((cur) => (cur === t._id ? null : t._id))}
-                        >
-                          <span className={`q-ws-dot${t.status === "open" ? " is-open" : ""}`} />
-                          <span className="q-ws-thread-t">{t.title}</span>
+                      <div
+                        key={t._id}
+                        className={`q-ws-thread${expanded === t._id ? " is-on" : ""}${t.status === "resolved" ? " is-resolved" : ""}`}
+                      >
+                        <div className="q-ws-thread-row">
+                          <button
+                            type="button"
+                            className="q-ws-thread-head"
+                            aria-expanded={expanded === t._id}
+                            onClick={() => setExpanded((cur) => (cur === t._id ? null : t._id))}
+                          >
+                            <span className={`q-ws-dot${t.status === "open" ? " is-open" : ""}`} />
+                            <span className="q-ws-thread-t">{t.title}</span>
+                          </button>
+                          {expanded === t._id && (
+                            <span className="q-ws-thread-actions">
+                              <button
+                                type="button"
+                                className="q-ws-btn"
+                                onClick={() =>
+                                  void setThreadStatus({
+                                    threadId: t._id,
+                                    status: t.status === "open" ? "resolved" : "open",
+                                  })
+                                }
+                              >
+                                {t.status === "open" ? "Resolve" : "Reopen"}
+                              </button>
+                              <Link
+                                className="q-ws-btn is-primary"
+                                href={`${preview.url}?review=1&thread=${t._id}`}
+                              >
+                                Open in review <ExternalIcon />
+                              </Link>
+                            </span>
+                          )}
                           <span className="q-ws-thread-meta">
-                            {t.status} · {t.actionCount} actions · {timeAgo(t.updatedAt)}
+                            <span className={`q-ws-status${t.status === "open" ? " is-open" : ""}`}>
+                              {t.status}
+                            </span>
+                            {t.actionCount} actions · {timeAgo(t.updatedAt)}
                           </span>
-                        </button>
+                        </div>
                         {expanded === t._id && <Conversation threadId={t._id} users={users} />}
                       </div>
                     ))
@@ -277,14 +412,17 @@ export default function ThreadsPage() {
                 </div>
 
                 <div className="q-ws-section">
-                  <div className="q-ws-section-h">Actions</div>
+                  <div className="q-ws-section-h is-plain">Actions</div>
                   {actions.length === 0 ? (
                     <p className="q-ws-empty-s">
                       Created from thread discussions with <code>Add to actions</code>.
                     </p>
                   ) : (
                     actions.map((a) => (
-                      <div key={a._id} className="q-ws-action">
+                      <div
+                        key={a._id}
+                        className={`q-ws-action${a.status === "done" ? " is-done" : ""}`}
+                      >
                         <div className="q-ws-action-head">
                           <b>{a.title}</b>
                           <span>{a.status}</span>
@@ -304,6 +442,29 @@ export default function ThreadsPage() {
                             <dd>{a.acceptanceNotes}</dd>
                           </div>
                         </dl>
+                        <div className="q-ws-thread-tools">
+                          <button
+                            type="button"
+                            className="q-ws-btn"
+                            onClick={() =>
+                              void setActionStatus({
+                                actionId: a._id,
+                                status: a.status === "done" ? "created" : "done",
+                              }).catch(() => {
+                                /* needs the pending backend deploy */
+                              })
+                            }
+                          >
+                            {a.status === "done" ? "Reopen" : "Mark done"}
+                          </button>
+                          <button
+                            type="button"
+                            className="q-ws-btn"
+                            onClick={() => setExpanded(a.threadId)}
+                          >
+                            View thread
+                          </button>
+                        </div>
                       </div>
                     ))
                   )}

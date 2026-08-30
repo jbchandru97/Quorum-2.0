@@ -190,25 +190,30 @@ function hostnameOf(url: string): string {
   }
 }
 
-function actions(): AgentAnswer {
-  const target = findTarget(PRIMARY_TARGET_KEY);
+function actions(targetKey?: string | null, question?: string): AgentAnswer {
+  /* Structurally the same two items; the thread's actual target
+     label and the reviewer's actual question fill the copy. */
+  const target = findTarget(targetKey ?? PRIMARY_TARGET_KEY) ?? findTarget(PRIMARY_TARGET_KEY);
+  const label = target?.label ?? "dashboard AI nudge";
   const breadcrumb = target?.breadcrumb.join(" / ") ?? "Dashboard / SpendingSummary / AIInsightPrompt";
   const shared = target?.sharedWith.join(", ") ?? "Dashboard, Monthly Insights, Empty state";
+  const asked = question?.trim().replace(/\s+/g, " ").slice(0, 140);
   const list: AgentActionPayload[] = [
     {
-      title: "Update dashboard AI nudge copy",
-      summary:
-        "Clarify that Aql AI will analyze recent spending before the user enters the assistant.",
+      title: `Update ${label} copy`,
+      summary: asked
+        ? `Resolve the open question from this thread — “${asked}” — by clarifying what will be analyzed before the user clicks through.`
+        : "Clarify that Aql AI will analyze recent spending before the user enters the assistant.",
       targetDescription: breadcrumb,
       scopeNotes: `Dashboard instance only. Do not touch the shared variants (${shared}).`,
       acceptanceNotes:
-        "The nudge states what will be analyzed before the click, and ships in this week's customer preview.",
+        `The ${label} states what will be analyzed before the click, and ships in this week's customer preview.`,
     },
     {
-      title: "Refactor shared AI nudge component",
+      title: `Refactor shared ${label} component`,
       summary:
         "Evaluate the shared component across all surfaces and apply a consistent transparency pattern later.",
-      targetDescription: `Shared AIInsightPrompt base component (${shared})`,
+      targetDescription: `Shared base component behind the ${label} (${shared})`,
       scopeNotes: "All shared surfaces; needs broader validation before rollout.",
       acceptanceNotes:
         "One consistent transparency pattern across every surface that uses the component.",
@@ -216,7 +221,7 @@ function actions(): AgentAnswer {
   ];
   return {
     content:
-      "Created 2 actions from this thread:\n1. Update dashboard AI nudge copy — scoped, this week.\n2. Refactor shared AI nudge component — follow-up.",
+      `Created 2 actions from this thread:\n1. Update ${label} copy — scoped, this week.\n2. Refactor shared ${label} component — follow-up.`,
     sources: [{ label: "Thread discussion", provenance: "human" }],
     actions: list,
   };
@@ -240,7 +245,7 @@ export async function answerFor(
     case "unknown":
       return unknown();
     case "actions":
-      return actions();
+      return actions(opts.targetKey, opts.question);
   }
 }
 

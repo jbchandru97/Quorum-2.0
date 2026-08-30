@@ -33,3 +33,14 @@ export const create = mutation({
     return actionId;
   },
 });
+
+export const setStatus = mutation({
+  args: {
+    actionId: v.id("actions"),
+    status: v.union(v.literal("created"), v.literal("done")),
+  },
+  handler: async ({ db }, { actionId, status }) => {
+    if (!(await db.get(actionId))) throw new Error("Action not found");
+    await db.patch(actionId, { status });
+  },
+});
