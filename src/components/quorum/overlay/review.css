@@ -52,19 +52,34 @@ html[data-quorum-review] .wizard-panel { display: none !important; }
   display: flex;
   flex-direction: column;
   z-index: var(--q-z-toolbar);
-  animation: q-enter-toolbar var(--q-t) var(--q-ease) both;
+  /* No transform-based entry here: the animation's fill would pin
+     `transform: none` and defeat positional transforms. Centering
+     is done with auto margins instead. */
+  animation: q-dock-in var(--q-t) var(--q-ease) both;
+}
+
+@keyframes q-dock-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .q-dock.is-bottom {
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 22px;
-  transform: translateX(-50%);
+  width: fit-content;
+  margin-inline: auto;
 }
 
+/* A thin icon rail, snapped to the left edge, vertically centred. */
 .q-dock.is-left {
   left: 14px;
-  bottom: 22px;
-  width: 188px;
+  top: 0;
+  bottom: 0;
+  height: fit-content;
+  margin-block: auto;
+  flex-direction: row;
+  align-items: stretch;
 }
 
 .q-dock.is-dragging {
@@ -105,7 +120,7 @@ html[data-quorum-review] .wizard-panel { display: none !important; }
 .q-dock-handle:hover { color: var(--q-ink); }
 .q-dock-handle svg { width: 14px; height: 14px; }
 
-/* ── vertical setup, docked in the left corner ───────────────── */
+/* ── vertical setup: the thin icon rail ──────────────────────── */
 
 .q-dock.is-left .q-dock-bar {
   flex-direction: column;
@@ -114,24 +129,30 @@ html[data-quorum-review] .wizard-panel { display: none !important; }
 
 .q-dock.is-left .q-dock-group {
   flex-direction: column;
-  align-items: stretch;
-  padding: 6px;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 5px;
 }
 .q-dock.is-left .q-dock-group + .q-dock-group {
   border-left: 0;
   border-top: 1px solid var(--q-rule);
 }
 
+/* Icons only — labels and counts stay in the flyout. */
 .q-dock.is-left .q-tb-btn {
-  width: 100%;
-  justify-content: flex-start;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  justify-content: center;
 }
-.q-dock.is-left .q-tb-btn .q-tb-count { margin-left: auto; }
+.q-dock.is-left .q-tb-btn span { display: none; }
 
-.q-dock.is-left .q-dock-handle { width: 100%; height: 22px; }
+.q-dock.is-left .q-dock-handle { width: 30px; height: 22px; }
 .q-dock.is-left .q-dock-handle svg { transform: rotate(90deg); }
 
-.q-dock.is-left .q-dock-people { align-items: center; padding: 8px 6px; }
+.q-dock.is-left .q-dock-people { padding: 8px 5px; }
+.q-dock.is-left .q-avatars { flex-direction: column; }
+.q-dock.is-left .q-avatars .q-avatar + .q-avatar { margin-left: 0; margin-top: -7px; }
 
 /* ── the extension: threads / actions, flush with the bar ────── */
 
@@ -139,11 +160,27 @@ html[data-quorum-review] .wizard-panel { display: none !important; }
   width: 100%;
   background: var(--q-paper);
   border: 1px solid var(--q-line);
-  border-bottom: 0;                 /* shares its edge with the bar */
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.30);
   max-height: 320px;
   overflow-y: auto;
   animation: q-enter-up var(--q-t) var(--q-ease) both;
+}
+
+/* Bottom dock: the extension grows upward out of the bar. */
+.q-dock.is-bottom .q-dock-ext { border-bottom: 0; }
+
+/* Left dock: the extension slides out of the rail's right edge. */
+.q-dock.is-left .q-dock-ext {
+  order: 2;
+  width: 264px;
+  max-height: none;
+  border-left: 0;
+  animation: q-ext-slide var(--q-t-panel) var(--q-ease-out) both;
+}
+
+@keyframes q-ext-slide {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: none; }
 }
 
 .q-ext-head {

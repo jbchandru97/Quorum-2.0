@@ -38,12 +38,12 @@ export type AgentAnswer = {
 
 /* Only the steps relevant to each request, per /docs/06. */
 export const AGENT_STEP_LABELS: Record<AgentKind, string[]> = {
-  rationale: ["Checking product context", "Composing answer"],
+  rationale: ["Searching the codebase", "Checking product context", "Composing answer"],
   playbook: ["Checking design review guidance", "Composing answer"],
   precedent: ["Checking precedent metrics", "Composing answer"],
-  delay: ["Checking product context", "Checking design review guidance", "Composing answer"],
+  delay: ["Searching the codebase", "Checking product context", "Composing answer"],
   external: ["Checking product context", "Fetching external reference", "Composing answer"],
-  unknown: ["Checking product context", "Checking design review guidance", "Composing answer"],
+  unknown: ["Searching the codebase", "Checking design review guidance", "Composing answer"],
   actions: ["Reading thread discussion", "Synthesizing actions"],
 };
 

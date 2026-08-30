@@ -106,21 +106,28 @@ export function ReviewDock() {
   const resolved = s.threads.filter((t) => t.status === "resolved");
 
   const dragging = dragPos !== null;
-  const side: DockSide = dragging ? dock : dock;
 
   return (
     <div
       ref={dockRef}
       className={[
         "q-dock",
-        side === "left" ? "is-left" : "is-bottom",
+        dock === "left" ? "is-left" : "is-bottom",
         dragging ? "is-dragging" : "",
       ]
         .filter(Boolean)
         .join(" ")}
       style={
         dragging
-          ? { left: dragPos.x, top: dragPos.y, right: "auto", bottom: "auto", transform: "none" }
+          ? {
+              left: dragPos.x,
+              top: dragPos.y,
+              right: "auto",
+              bottom: "auto",
+              margin: 0,
+              width: "fit-content",
+              height: "fit-content",
+            }
           : undefined
       }
     >

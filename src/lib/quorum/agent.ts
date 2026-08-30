@@ -7,6 +7,7 @@ import {
 } from "./fixtures";
 import { searchExternalEvidence } from "./context-dev";
 import { EXTERNAL_QUERY } from "./demo-script";
+import { searchRepo, type RepoHit } from "./repo-search";
 import { PRIMARY_TARGET_KEY } from "./targets";
 
 /* ───────────────────────────────────────────────────────────────
@@ -61,21 +62,41 @@ const CANNOT = (what: string): AgentAnswer => ({
    the thread's target and admits the gap otherwise (docs/06). */
 const documentsTarget = (targetKey?: string | null) => targetKey === PRIMARY_TARGET_KEY;
 
-async function rationale(targetKey?: string | null): Promise<AgentAnswer> {
+/* ── the codebase, as evidence ──────────────────────────────────
+   Real matches from the product under review, rendered as lines the
+   reviewer can check, with file:line chips. */
+const repoBullets = (hits: RepoHit[]) =>
+  hits.map((h) => `${h.file}:${h.line} — ${h.text}`).join("\n");
+
+const repoSources = (hits: RepoHit[]) =>
+  hits.map((h) => ({
+    label: h.file.split("/").pop() ?? h.file,
+    provenance: "cited" as const,
+    detail: `repo · L${h.line}`,
+  }));
+
+async function rationale(targetKey?: string | null, question?: string): Promise<AgentAnswer> {
+  const hits = question ? await searchRepo(question) : [];
+  const repoPart = hits.length > 0 ? `From the codebase:\n${repoBullets(hits)}` : null;
+
   if (!documentsTarget(targetKey)) {
     return {
-      content:
-        "I couldn't find a documented rationale for this target — the product rationale on file covers the AI insight nudge, not this element. Someone who worked on it may know; you may want to tag them.",
-      sources: [],
+      content: repoPart
+        ? `There is no written rationale on file for this target, but here is what the code itself shows.\n${repoPart}`
+        : "I couldn't find a documented rationale for this target, and nothing in the codebase matched the question. Someone who worked on it may know — you may want to tag them.",
+      sources: repoSources(hits),
     };
   }
   const doc = await readMarkdownFixture("productRationale");
   const lead = doc ? leadParagraph(doc) : null;
-  if (!lead) return CANNOT("a documented product rationale");
+  if (!lead && !repoPart) return CANNOT("a documented product rationale");
   return {
-    content: lead,
+    content: [lead, repoPart].filter(Boolean).join("\n"),
     sources: [
-      { label: "Product rationale", provenance: "cited", detail: "product-rationale.md" },
+      ...(lead
+        ? [{ label: "Product rationale", provenance: "cited" as const, detail: "product-rationale.md" }]
+        : []),
+      ...repoSources(hits),
     ],
   };
 }
@@ -130,17 +151,28 @@ function precedent(targetKey?: string | null): AgentAnswer {
   };
 }
 
-async function delay(targetKey?: string | null): Promise<AgentAnswer> {
-  if (!documentsTarget(targetKey)) return rationale(targetKey);
+async function delay(targetKey?: string | null, question?: string): Promise<AgentAnswer> {
+  if (!documentsTarget(targetKey)) return rationale(targetKey, question);
+  /* Find the actual mechanism in the code before saying anything. */
+  const hits = await searchRepo(`${question ?? ""} setTimeout delay timer visible`);
   const doc = await readMarkdownFixture("productRationale");
   const notesDelay = doc?.includes("delay") ?? false;
+  const repoPart = hits.length > 0 ? `From the codebase:\n${repoBullets(hits)}` : null;
   return {
-    content: notesDelay
-      ? "I found the delay in the implementation, but the product rationale explicitly notes there is no written reason for it. I can't answer this from documentation — Rohan built v1 and may hold the rationale. You may want to tag him."
-      : "I found the delay in the implementation, but no documented rationale for it anywhere I can read. You may want to tag the PM.",
-    sources: notesDelay
-      ? [{ label: "Product rationale", provenance: "cited", detail: "marked undocumented" }]
-      : [],
+    content: [
+      notesDelay
+        ? "The delay is real, and the product rationale explicitly notes there is no written reason for it. I can't answer the why from documentation — Rohan built v1 and may hold the rationale. You may want to tag him."
+        : "The delay is present in the implementation, but I found no documented rationale for it. You may want to tag the PM.",
+      repoPart,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    sources: [
+      ...(notesDelay
+        ? [{ label: "Product rationale", provenance: "cited" as const, detail: "marked undocumented" }]
+        : []),
+      ...repoSources(hits),
+    ],
   };
 }
 
@@ -174,10 +206,18 @@ async function external(question?: string): Promise<AgentAnswer> {
   };
 }
 
-function unknown(): AgentAnswer {
+async function unknown(question?: string): Promise<AgentAnswer> {
+  /* Last stop before admitting defeat: the codebase itself. */
+  const hits = question ? await searchRepo(question) : [];
+  if (hits.length > 0) {
+    return {
+      content: `Nothing in the written docs covers this, but here is what I found in the codebase:\n${repoBullets(hits)}`,
+      sources: repoSources(hits),
+    };
+  }
   return {
     content:
-      "I couldn't find anything in the product rationale, the design review playbook, or the analytics precedent that answers this, and it doesn't read as a public-web question. This may need lived context — you may want to tag Rohan (PM) or Arun (Engineer).",
+      "I searched the codebase, the product rationale, the design review playbook, and the analytics precedent and found nothing that answers this — and it doesn't read as a public-web question. This may need lived context; you may want to tag Rohan (PM) or Arun (Engineer).",
     sources: [],
   };
 }
@@ -228,17 +268,17 @@ export async function answerFor(
 ): Promise<AgentAnswer> {
   switch (kind) {
     case "rationale":
-      return rationale(opts.targetKey);
+      return rationale(opts.targetKey, opts.question);
     case "playbook":
       return playbook(opts.targetKey);
     case "precedent":
       return precedent(opts.targetKey);
     case "delay":
-      return delay(opts.targetKey);
+      return delay(opts.targetKey, opts.question);
     case "external":
       return external(opts.question);
     case "unknown":
-      return unknown();
+      return unknown(opts.question);
     case "actions":
       return actions();
   }
