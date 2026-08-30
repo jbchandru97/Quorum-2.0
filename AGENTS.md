@@ -33,7 +33,8 @@
 ## Review overlay & demo
 
 - The review surface is `/demo/playground?review=1`. The overlay mounts through `src/components/quorum/overlay/ReviewMount.tsx` and is driven by the session provider in `ReviewSession.tsx`; the wizard (`WizardConductor.tsx` + `wizard-steps.ts`) drives the same session verbs the UI binds to.
-- Overlay modes: `Free flow` (default — the host product stays fully usable) and `Inspect` (click selects an element, dragging draws a region, `Esc` returns to free flow). Committing a target auto-returns to free flow.
+- Overlay modes: `Move` (default — the host product stays fully usable), `Draw` (sweep a box over an area to comment on it), `Select` (inspect and pick an element). `Esc` returns to Move; committing a target auto-returns to Move.
+- The control dialog is dockable: drag its grip handle; dropping in the left quarter of the screen docks it vertically in the bottom-left corner, anywhere else returns it to the bottom centre. Threads/Actions open as a flush same-width extension of the dialog (`ReviewDock.tsx`), not detached popovers.
 - Overlay chrome (toolbar, panel, popovers, markers, wizard chip) renders with the dark token register from `review.css` so it stands out over the light demo product.
 - Demo keys: `→` next step, `←` back (UI-only steps), `⇧R` or the chip's `↺ reset` button clears Convex demo data + reloads. `Esc` blurs the composer so the arrows reach the conductor.
 - Agent answers come from `POST /api/agent` (`src/lib/quorum/agent.ts`). Free-form questions are routed by `classifyQuestion` in `src/lib/quorum/agent-kinds.ts` (shared client/server): `rationale|playbook|precedent|delay` read `fixtures/` and are gated to the documented target (`ai-insight-prompt`) — other targets get honest not-found answers; `external` performs a real Context.dev search using the reviewer's own question (1 credit per run); `unknown` admits it and suggests tagging a human; `actions` synthesizes the two scripted action items.

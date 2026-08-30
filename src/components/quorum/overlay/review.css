@@ -17,7 +17,7 @@ html[data-quorum-review] .wizard-panel { display: none !important; }
    the design system's dark register in globals.css. The rings and
    marquee keep the light accent: they annotate the product itself. */
 
-.q-overlay .q-toolbar,
+.q-overlay .q-dock,
 .q-overlay .q-panel,
 .q-overlay .q-marker,
 .q-popover,
@@ -43,8 +43,145 @@ html[data-quorum-review] .wizard-panel { display: none !important; }
 }
 
 /* Dark surfaces floating over a light page need the deeper shadow. */
-.q-overlay .q-toolbar,
 .q-popover { box-shadow: 0 6px 24px rgba(0, 0, 0, 0.30); }
+
+/* ── the dockable control dialog ─────────────────────────────── */
+
+.q-dock {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  z-index: var(--q-z-toolbar);
+  animation: q-enter-toolbar var(--q-t) var(--q-ease) both;
+}
+
+.q-dock.is-bottom {
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+}
+
+.q-dock.is-left {
+  left: 14px;
+  bottom: 22px;
+  width: 188px;
+}
+
+.q-dock.is-dragging {
+  opacity: .92;
+  animation: none;
+  cursor: grabbing;
+}
+.q-dock.is-dragging * { cursor: grabbing !important; }
+
+.q-dock-bar {
+  display: inline-flex;
+  align-items: stretch;
+  background: var(--q-paper);
+  border: 1px solid var(--q-line);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.30);
+}
+
+.q-dock-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 8px;
+}
+.q-dock-group + .q-dock-group { border-left: 1px solid var(--q-rule); }
+
+.q-dock-people { padding: 5px 12px; }
+
+.q-dock-handle {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 28px;
+  color: var(--q-muted);
+  cursor: grab;
+  touch-action: none;
+  transition: color var(--q-t-fast) var(--q-ease);
+}
+.q-dock-handle:hover { color: var(--q-ink); }
+.q-dock-handle svg { width: 14px; height: 14px; }
+
+/* ── vertical setup, docked in the left corner ───────────────── */
+
+.q-dock.is-left .q-dock-bar {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.q-dock.is-left .q-dock-group {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 6px;
+}
+.q-dock.is-left .q-dock-group + .q-dock-group {
+  border-left: 0;
+  border-top: 1px solid var(--q-rule);
+}
+
+.q-dock.is-left .q-tb-btn {
+  width: 100%;
+  justify-content: flex-start;
+}
+.q-dock.is-left .q-tb-btn .q-tb-count { margin-left: auto; }
+
+.q-dock.is-left .q-dock-handle { width: 100%; height: 22px; }
+.q-dock.is-left .q-dock-handle svg { transform: rotate(90deg); }
+
+.q-dock.is-left .q-dock-people { align-items: center; padding: 8px 6px; }
+
+/* ── the extension: threads / actions, flush with the bar ────── */
+
+.q-dock-ext {
+  width: 100%;
+  background: var(--q-paper);
+  border: 1px solid var(--q-line);
+  border-bottom: 0;                 /* shares its edge with the bar */
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.30);
+  max-height: 320px;
+  overflow-y: auto;
+  animation: q-enter-up var(--q-t) var(--q-ease) both;
+}
+
+.q-ext-head {
+  position: sticky;
+  top: 0;
+  background: var(--q-paper);
+  padding: 8px 11px 7px;
+  border-bottom: 1px solid var(--q-rule);
+  font: 400 9.5px/1 var(--q-mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--q-muted);
+}
+
+.q-ext-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 11px;
+  font: 400 12.5px/1.35 var(--q-body);
+  color: var(--q-ink);
+  transition: background-color var(--q-t-fast) var(--q-ease);
+}
+.q-ext-row:hover { background: var(--q-fill); }
+.q-ext-row.is-on { color: var(--q-signal); }
+.q-ext-row.is-resolved .q-ext-row-t { color: var(--q-muted); }
+
+.q-ext-row-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.q-ext-row-k { font: 400 10px/1 var(--q-mono); color: var(--q-muted); flex: 0 0 auto; }
+
+.q-ext-empty {
+  padding: 12px 11px 13px;
+  font: 400 12px/1.5 var(--q-body);
+  color: var(--q-muted);
+}
 
 /* ── inspect mode ─────────────────────────────────────────────── */
 
@@ -235,7 +372,7 @@ html[data-quorum-inspect] .q-wizard-chip * { cursor: default !important; }
 
 .q-wizard-chip {
   position: fixed;
-  left: 14px;
+  right: 14px;
   bottom: 26px;
   z-index: var(--q-z-toolbar);
   display: inline-flex;
